@@ -34,7 +34,7 @@ namespace DbUp.SqlAnywhere
             throw new NotSupportedException();
         }
 
-        protected override void ExecuteCommandsWithinExceptionHandler(int index, SqlScript script, Action excuteCommand)
+        protected override void ExecuteCommandsWithinExceptionHandler(int index, PreparedSqlScript script, Action excuteCommand)
         {
             try
             {

@@ -11,8 +11,8 @@ namespace DbUp.Engine.Transactions
         IDbTransaction transaction;
         bool errorOccured;
         IUpgradeLog log;
-        SqlScript[] executedScriptsListBeforeExecution;
-        List<SqlScript> executedScriptsCollection;
+        PreparedSqlScript[] executedScriptsListBeforeExecution;
+        List<PreparedSqlScript> executedScriptsCollection;
 
         public void Execute(Action<Func<IDbCommand>> action)
         {
@@ -56,7 +56,7 @@ namespace DbUp.Engine.Transactions
             }
         }
 
-        public void Initialise(IDbConnection dbConnection, IUpgradeLog upgradeLog, List<SqlScript> executedScripts)
+        public void Initialise(IDbConnection dbConnection, IUpgradeLog upgradeLog, List<PreparedSqlScript> executedScripts)
         {
             executedScriptsCollection = executedScripts;
             executedScriptsListBeforeExecution = executedScripts.ToArray();

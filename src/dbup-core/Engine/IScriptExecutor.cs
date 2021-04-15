@@ -8,17 +8,24 @@ namespace DbUp.Engine
     public interface IScriptExecutor
     {
         /// <summary>
+        /// Returns the preprocessed script contents.
+        /// </summary>
+        /// <param name="contents">The original script contents.</param>
+        /// <param name="variables">Variables to replace in the script</param>
+        string PreprocessScriptContents(string contents, IDictionary<string, string> variables);
+
+        /// <summary>
         /// Executes the specified script against a database at a given connection string.
         /// </summary>
         /// <param name="script">The script.</param>
-        void Execute(SqlScript script);
+        void Execute(PreparedSqlScript script);
 
         /// <summary>
         /// Executes the specified script against a database at a given connection string.
         /// </summary>
         /// <param name="script">The script.</param>
         /// <param name="variables">Variables to replace in the script</param>
-        void Execute(SqlScript script, IDictionary<string, string> variables);
+        void Execute(PreparedSqlScript script, IDictionary<string, string> variables);
 
         /// <summary>
         /// Verifies the specified schema exists and is valid

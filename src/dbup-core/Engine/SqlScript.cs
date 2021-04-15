@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
@@ -28,15 +29,24 @@ namespace DbUp.Engine
         public SqlScript(string name, string contents, SqlScriptOptions sqlScriptOptions)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
-            Contents = contents;
+            ContentProvider = () => contents;
             SqlScriptOptions = sqlScriptOptions ?? new SqlScriptOptions();
         }
 
         /// <summary>
-        /// Gets the contents of the script.
+        /// Initializes a new instance of the <see cref="SqlScript"/> class with a specific options - script type and a script order
         /// </summary>
-        /// <value></value>
-        public virtual string Contents { get; }
+        /// <param name="name">The name.</param>
+        /// <param name="contentProvider">A function to get the contents.</param>
+        /// <param name="sqlScriptOptions">The script options.</param>        
+        public SqlScript(string name, Func<string> contentProvider, SqlScriptOptions sqlScriptOptions)
+        {
+            Name = name ?? throw new ArgumentNullException(nameof(name));
+            ContentProvider = contentProvider;
+            SqlScriptOptions = sqlScriptOptions ?? new SqlScriptOptions();
+        }
+
+        internal Func<string> ContentProvider { get; }
 
         /// <summary>
         /// Gets the SQL Script Options

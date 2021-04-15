@@ -27,7 +27,7 @@ namespace DbUp.Tests.ScriptProvider
             protected override void When()
             {
                 var testConnectionManager = new TestConnectionManager(Substitute.For<IDbConnection>());
-                testConnectionManager.OperationStarting(new ConsoleUpgradeLog(), new List<SqlScript>());
+                testConnectionManager.OperationStarting(new ConsoleUpgradeLog(), new List<PreparedSqlScript>());
                 scriptsToExecute = Subject.GetScripts(testConnectionManager).ToArray();
             }
 
@@ -52,7 +52,7 @@ namespace DbUp.Tests.ScriptProvider
             {
                 scriptsToExecute
                     .Single(s => s.Name.EndsWith("Script20120723_1_Test4.cs"))
-                    .Contents
+                    .GetContents()
                     .ShouldBe("test4");
             }
         }
@@ -71,7 +71,7 @@ namespace DbUp.Tests.ScriptProvider
             protected override void When()
             {
                 var testConnectionManager = new TestConnectionManager(Substitute.For<IDbConnection>());
-                testConnectionManager.OperationStarting(new ConsoleUpgradeLog(), new List<SqlScript>());
+                testConnectionManager.OperationStarting(new ConsoleUpgradeLog(), new List<PreparedSqlScript>());
                 scriptsToExecute = Subject.GetScripts(testConnectionManager).ToArray();
             }
 

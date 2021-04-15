@@ -50,7 +50,7 @@ namespace DbUp.Tests.Support.SQLite
             var journal = new SQLiteTableJournal(() => connectionManager, () => consoleUpgradeLog, "SchemaVersions");
 
             // When
-            journal.StoreExecutedScript(new SqlScript("test", "select 1"), () => command);
+            journal.StoreExecutedScript(new SqlScript("test", "select 1").ToPreparedSqlScript(), () => command);
 
             // Expect
             command.Received(2).CreateParameter();

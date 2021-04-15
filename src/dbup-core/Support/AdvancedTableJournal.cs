@@ -1,18 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Linq;
 using DbUp.Engine;
 using DbUp.Engine.Output;
 using DbUp.Engine.Transactions;
 
-// ReSharper disable MemberCanBePrivate.Global
 namespace DbUp.Support
 {
     /// <summary>
     /// The base class for Journal implementations that use a table.
     /// </summary>
-    public abstract class TableJournal : IJournal
+    public abstract class AdvancedTableJournal : IJournal
     {
         readonly ISqlObjectParser sqlObjectParser;
         bool journalExists;
@@ -25,7 +23,7 @@ namespace DbUp.Support
         /// <param name="sqlObjectParser"></param>
         /// <param name="schema">The schema that contains the table.</param>
         /// <param name="table">The table name.</param>
-        protected TableJournal(
+        protected AdvancedTableJournal(
             Func<IConnectionManager> connectionManager,
             Func<IUpgradeLog> logger,
             ISqlObjectParser sqlObjectParser,
@@ -59,11 +57,6 @@ namespace DbUp.Support
 
         public AppliedSqlScript[] GetExecutedScripts()
         {
-            return GetExecutedScriptsCore().Select(s => new AppliedSqlScript(s, ScriptType.RunOnce, null, DateTime.MinValue)).ToArray();
-        }
-
-        private IEnumerable<string> GetExecutedScriptsCore()
-        {
             return ConnectionManager().ExecuteCommandsWithManagedConnection(dbCommandFactory =>
             {
                 if (journalExists || DoesTableExist(dbCommandFactory))
@@ -72,23 +65,14 @@ namespace DbUp.Support
                     
                     Log().WriteInformation("Fetching list of already executed scripts.");
 
-                    var scripts = new List<string>();
+                    var scripts = GetJournalEntries(dbCommandFactory);
 
-                    using (var command = GetJournalEntriesCommand(dbCommandFactory))
-                    {
-                        using (var reader = command.ExecuteReader())
-                        {
-                            while (reader.Read())
-                                scripts.Add((string)reader[0]);
-                        }
-                    }
-
-                    return scripts.AsEnumerable();
+                    return scripts.ToArray();
                 }
                 else
                 {
                     Log().WriteInformation("Journal table does not exist");
-                    return new string[0];
+                    return new AppliedSqlScript[0];
                 }
             });
         }
@@ -101,37 +85,37 @@ namespace DbUp.Support
         public virtual void StoreExecutedScript(PreparedSqlScript script, Func<IDbCommand> dbCommandFactory)
         {
             EnsureTableExistsAndIsLatestVersion(dbCommandFactory);
-            using (var command = GetInsertScriptCommand(dbCommandFactory, script))
+            InsertJournalEntry(dbCommandFactory, script);
+        }
+
+        private static string ScriptTypeToString(ScriptType scriptType)
+        {
+            switch (scriptType)
             {
-                command.ExecuteNonQuery();
+                case ScriptType.RunOnce:
+                    return "RunOnce";
+                case ScriptType.RunAlways:
+                    return "RunAlways";
+                case ScriptType.RunIfChanged:
+                    return "RunIfChanged";
+                default:
+                    throw new Exception("Unsupported script type: " + scriptType);
             }
         }
 
-        protected IDbCommand GetInsertScriptCommand(Func<IDbCommand> dbCommandFactory, PreparedSqlScript script)
+        private static ScriptType ScriptTypeFromString(string scriptType)
         {
-            var command = dbCommandFactory();
-
-            var scriptNameParam = command.CreateParameter();
-            scriptNameParam.ParameterName = "scriptName";
-            scriptNameParam.Value = script.Name;
-            command.Parameters.Add(scriptNameParam);
-
-            var appliedParam = command.CreateParameter();
-            appliedParam.ParameterName = "applied";
-            appliedParam.Value = DateTime.Now;
-            command.Parameters.Add(appliedParam);
-
-            command.CommandText = GetInsertJournalEntrySql("@scriptName", "@applied");
-            command.CommandType = CommandType.Text;
-            return command;
-        }
-
-        protected IDbCommand GetJournalEntriesCommand(Func<IDbCommand> dbCommandFactory)
-        {
-            var command = dbCommandFactory();
-            command.CommandText = GetJournalEntriesSql();
-            command.CommandType = CommandType.Text;
-            return command;
+            switch (scriptType)
+            {
+                case "RunOnce":
+                    return ScriptType.RunOnce;
+                case "RunAlways":
+                    return ScriptType.RunAlways;
+                case "RunIfChanged":
+                    return ScriptType.RunIfChanged;
+                default:
+                    throw new Exception("Unsupported script type: " + scriptType);
+            }
         }
 
         protected IDbCommand GetCreateTableCommand(Func<IDbCommand> dbCommandFactory)
@@ -144,17 +128,14 @@ namespace DbUp.Support
         }
 
         /// <summary>
-        /// Sql for inserting a journal entry
+        /// Inserts a journal entry.
         /// </summary>
-        /// <param name="scriptName">Name of the script name param (i.e @scriptName)</param>
-        /// <param name="applied">Name of the applied param (i.e @applied)</param>
-        /// <returns></returns>
-        protected abstract string GetInsertJournalEntrySql(string @scriptName, string @applied);
+        protected abstract void InsertJournalEntry(Func<IDbCommand> dbCommandFactory, PreparedSqlScript script);
 
         /// <summary>
-        /// Sql for getting the journal entries
+        /// Gets the journal entries.
         /// </summary>
-        protected abstract string GetJournalEntriesSql();
+        protected abstract List<AppliedSqlScript> GetJournalEntries(Func<IDbCommand> dbCommandFactory);
 
         /// <summary>
         /// Sql for creating journal table

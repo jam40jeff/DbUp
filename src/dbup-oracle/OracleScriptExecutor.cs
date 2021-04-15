@@ -31,16 +31,7 @@ namespace DbUp.Oracle
             throw new NotSupportedException();
         }
 
-        /// <summary>
-        /// Executes the specified script against a database at a given connection string.
-        /// </summary>
-        /// <param name="script">The script.</param>
-        public override void Execute(SqlScript script)
-        {
-            Execute(script, null);
-        }
-
-        protected override void ExecuteCommandsWithinExceptionHandler(int index, SqlScript script, Action executeCommand)
+        protected override void ExecuteCommandsWithinExceptionHandler(int index, PreparedSqlScript script, Action executeCommand)
         {
             try
             {

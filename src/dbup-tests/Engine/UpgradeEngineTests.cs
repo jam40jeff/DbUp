@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using DbUp.Builder;
 using DbUp.Engine;
 using DbUp.Engine.Output;
@@ -89,7 +90,7 @@ namespace DbUp.Tests.Engine
             [Then]
             public void the_scripts_are_journalled()
             {
-                versionTracker.Received().StoreExecutedScript(Arg.Is<SqlScript>(s => s.Name == "1234"), Arg.Any<Func<IDbCommand>>());
+                versionTracker.Received().StoreExecutedScript(Arg.Is<PreparedSqlScript>(s => s.Name == "1234"), Arg.Any<Func<IDbCommand>>());
             }
 
             [Then]
@@ -110,7 +111,7 @@ namespace DbUp.Tests.Engine
             {
                 scriptProvider = Substitute.For<IScriptProvider>();
                 versionTracker = Substitute.For<IJournal>();
-                versionTracker.GetExecutedScripts().Returns(new[] { "#1", "#2", "#3" });
+                versionTracker.GetExecutedScripts().Returns(new[] { "#1".ToAppliedSqlScript(), "#2".ToAppliedSqlScript(), "#3".ToAppliedSqlScript() });
                 scriptExecutor = Substitute.For<IScriptExecutor>();
 
                 var config = new UpgradeConfiguration
@@ -127,7 +128,7 @@ namespace DbUp.Tests.Engine
 
             protected override void When()
             {
-                discoveredScripts = Subject.GetExecutedScripts();
+                discoveredScripts = Subject.GetExecutedScripts().Select(s => s.Name).ToList();
             }
 
             [Then]
@@ -153,7 +154,7 @@ namespace DbUp.Tests.Engine
                     new SqlScript("#3", "Content of #3"),
                 });
                 versionTracker = Substitute.For<IJournal>();
-                versionTracker.GetExecutedScripts().Returns(new[] { "#1", "#2", "#3" });
+                versionTracker.GetExecutedScripts().Returns(new[] { "#1".ToAppliedSqlScript(), "#2".ToAppliedSqlScript(), "#3".ToAppliedSqlScript() });
                 scriptExecutor = Substitute.For<IScriptExecutor>();
 
                 var config = new UpgradeConfiguration

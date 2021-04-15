@@ -23,8 +23,8 @@ namespace DbUp.Firebird
         /// <param name="scriptPreprocessors">Script Preprocessors in addition to variable substitution</param>
         /// <param name="journalFactory">Database journal</param>
         public FirebirdScriptExecutor(Func<IConnectionManager> connectionManagerFactory, Func<IUpgradeLog> log, string schema, Func<bool> variablesEnabled,
-            IEnumerable<IScriptPreprocessor> scriptPreprocessors, Func<IJournal> journal)
-            : base(connectionManagerFactory, new FirebirdObjectParser(), log, schema, variablesEnabled, scriptPreprocessors, journal)
+            IEnumerable<IScriptPreprocessor> scriptPreprocessors, Func<IJournal> journalFactory)
+            : base(connectionManagerFactory, new FirebirdObjectParser(), log, schema, variablesEnabled, scriptPreprocessors, journalFactory)
         {
         }
 
@@ -33,7 +33,7 @@ namespace DbUp.Firebird
             throw new NotSupportedException();
         }
 
-        protected override void ExecuteCommandsWithinExceptionHandler(int index, SqlScript script, Action executeCommand)
+        protected override void ExecuteCommandsWithinExceptionHandler(int index, PreparedSqlScript script, Action executeCommand)
         {
             try
             {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using DbUp.Engine;
 using DbUp.Engine.Filters;
 using DbUp.Engine.Output;
+using DbUp.Engine.Sorters;
 using DbUp.Engine.Transactions;
 using DbUp.Support;
 
@@ -88,6 +89,11 @@ namespace DbUp.Builder
         /// Gets or sets the script filter, which filters the scripts before execution
         /// </summary>
         public IScriptFilter ScriptFilter { get; set; } = new DefaultScriptFilter();
+
+        /// <summary>
+        /// Gets or sets the script sorter, which sorts the scripts before execution
+        /// </summary>
+        public IScriptSorter ScriptSorter { get; set; } = new DefaultScriptSorter();
 
         /// <summary>
         /// A collection of variables to be replaced in scripts before they are run

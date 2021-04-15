@@ -11,7 +11,7 @@ namespace DbUp.Tests.TestInfrastructure
         public TestConnectionManager(IDbConnection connection, bool startUpgrade = false) : base(l => connection)
         {
             if (startUpgrade)
-                OperationStarting(new ConsoleUpgradeLog(), new List<SqlScript>());
+                OperationStarting(new ConsoleUpgradeLog(), new List<PreparedSqlScript>());
         }
 
         public override IEnumerable<string> SplitScriptIntoCommands(string scriptContents)

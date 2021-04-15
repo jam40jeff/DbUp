@@ -77,7 +77,7 @@ namespace DbUp.Helpers
 ";
         }
 
-        static string GetHtmlForScript(SqlScript sqlScript, int counter)
+        static string GetHtmlForScript(PreparedSqlScript sqlScript, int counter)
         {
             return $@"<div class=""card"">
 			<div class=""card-header"" id=""script{counter}"">

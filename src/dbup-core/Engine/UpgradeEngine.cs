@@ -24,7 +24,7 @@ namespace DbUp.Engine
         /// <summary>
         /// An event that is raised after each script is executed.
         /// </summary>
-        public event EventHandler ScriptExecuted;
+        public event EventHandler<ScriptExecutedEventArgs> ScriptExecuted;
 
         /// <summary>
         /// Invokes the <see cref="ScriptExecuted"/> event; called whenever a script is executed.
@@ -58,9 +58,9 @@ namespace DbUp.Engine
         /// </summary>
         public virtual DatabaseUpgradeResult PerformUpgrade()
         {
-            var executed = new List<SqlScript>();
+            var executed = new List<PreparedSqlScript>();
 
-            SqlScript executedScript = null;
+            PreparedSqlScript executedScript = null;
             try
             {
                 using (configuration.ConnectionManager.OperationStarting(configuration.Log, executed))
@@ -108,9 +108,9 @@ namespace DbUp.Engine
         /// Returns a list of scripts that will be executed when the upgrade is performed
         /// </summary>
         /// <returns>The scripts to be executed</returns>
-        public virtual List<SqlScript> GetScriptsToExecute()
+        public virtual List<PreparedSqlScript> GetScriptsToExecute()
         {
-            using (configuration.ConnectionManager.OperationStarting(configuration.Log, new List<SqlScript>()))
+            using (configuration.ConnectionManager.OperationStarting(configuration.Log, new List<PreparedSqlScript>()))
             {
                 return GetScriptsToExecuteInsideOperation();
             }
@@ -118,32 +118,38 @@ namespace DbUp.Engine
 
         public virtual List<string> GetExecutedButNotDiscoveredScripts()
         {
-            return GetExecutedScripts().Except(GetDiscoveredScriptsAsEnumerable().Select(x => x.Name)).ToList();
+            return GetExecutedScripts().Select(s => s.Name).Except(GetDiscoveredScriptsAsEnumerable().Select(x => x.Name), configuration.ScriptNameComparer).ToList();
         }
 
-        public virtual List<SqlScript> GetDiscoveredScripts()
+        public virtual List<PreparedSqlScript> GetDiscoveredScripts()
         {
             return GetDiscoveredScriptsAsEnumerable().ToList();
         }
 
-        IEnumerable<SqlScript> GetDiscoveredScriptsAsEnumerable()
+        protected IEnumerable<PreparedSqlScript> GetDiscoveredScriptsAsEnumerable()
         {
-            return configuration.ScriptProviders.SelectMany(scriptProvider => scriptProvider.GetScripts(configuration.ConnectionManager));
+            return configuration.ScriptProviders.SelectMany(scriptProvider => scriptProvider.GetScripts(configuration.ConnectionManager).Select(s => new PreparedSqlScript(configuration.ScriptExecutor, configuration.Variables, s)));
         }
 
-        List<SqlScript> GetScriptsToExecuteInsideOperation()
+        List<PreparedSqlScript> GetScriptsToExecuteInsideOperation()
         {
             var allScripts = GetDiscoveredScriptsAsEnumerable();
-            var executedScriptNames = new HashSet<string>(configuration.Journal.GetExecutedScripts());
 
-            var sorted = allScripts.OrderBy(s => s.SqlScriptOptions.RunGroupOrder).ThenBy(s => s.Name, configuration.ScriptNameComparer);
-            var filtered = configuration.ScriptFilter.Filter(sorted, executedScriptNames, configuration.ScriptNameComparer);
-            return filtered.ToList();
+            var executedScriptsByName =
+                configuration.Journal.GetExecutedScripts()
+                    .GroupBy(s => s.Name, configuration.ScriptNameComparer)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.OrderByDescending(s => s.AppliedDate).First(), configuration.ScriptNameComparer);
+            
+            var filtered = configuration.ScriptFilter.Filter(allScripts, executedScriptsByName, configuration.ScriptNameComparer);
+            var sorted = configuration.ScriptSorter.Sort(filtered, configuration.ScriptNameComparer);
+            return sorted.ToList();
         }
 
-        public virtual List<string> GetExecutedScripts()
+        public virtual List<AppliedSqlScript> GetExecutedScripts()
         {
-            using (configuration.ConnectionManager.OperationStarting(configuration.Log, new List<SqlScript>()))
+            using (configuration.ConnectionManager.OperationStarting(configuration.Log, new List<PreparedSqlScript>()))
             {
                 return configuration.Journal.GetExecutedScripts()
                     .ToList();
@@ -157,8 +163,8 @@ namespace DbUp.Engine
         ///<returns></returns>
         public virtual DatabaseUpgradeResult MarkAsExecuted()
         {
-            var marked = new List<SqlScript>();
-            SqlScript executedScript = null; 
+            var marked = new List<PreparedSqlScript>();
+            PreparedSqlScript executedScript = null; 
             using (configuration.ConnectionManager.OperationStarting(configuration.Log, marked))
             {
                 try
@@ -187,8 +193,8 @@ namespace DbUp.Engine
 
         public virtual DatabaseUpgradeResult MarkAsExecuted(string latestScript)
         {
-            var marked = new List<SqlScript>();
-            SqlScript executedScript = null; 
+            var marked = new List<PreparedSqlScript>();
+            PreparedSqlScript executedScript = null; 
             using (configuration.ConnectionManager.OperationStarting(configuration.Log, marked))
             {
                 try

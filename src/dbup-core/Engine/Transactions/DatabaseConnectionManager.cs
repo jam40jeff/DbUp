@@ -42,7 +42,7 @@ namespace DbUp.Engine.Transactions
         /// <summary>
         /// Tells the connection manager is starting
         /// </summary>
-        public IDisposable OperationStarting(IUpgradeLog upgradeLog, List<SqlScript> executedScripts)
+        public IDisposable OperationStarting(IUpgradeLog upgradeLog, List<PreparedSqlScript> executedScripts)
         {
             upgradeConnection = CreateConnection(upgradeLog);
             if (upgradeConnection.State == ConnectionState.Closed)
@@ -74,7 +74,7 @@ namespace DbUp.Engine.Transactions
                     if (upgradeConnection.State == ConnectionState.Closed)
                         upgradeConnection.Open();
                     var strategy = transactionStrategyFactory[TransactionMode.NoTransaction]();
-                    strategy.Initialise(upgradeConnection, upgradeLog, new List<SqlScript>());
+                    strategy.Initialise(upgradeConnection, upgradeLog, new List<PreparedSqlScript>());
                     strategy.Execute(dbCommandFactory =>
                     {
                         using (var command = dbCommandFactory())

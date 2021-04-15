@@ -38,7 +38,7 @@ namespace DbUp.Engine.Transactions
             }
         }
 
-        public void Initialise(IDbConnection dbConnection, IUpgradeLog upgradeLog, List<SqlScript> executedScripts)
+        public void Initialise(IDbConnection dbConnection, IUpgradeLog upgradeLog, List<PreparedSqlScript> executedScripts)
         {
             connection = dbConnection ?? throw new ArgumentNullException(nameof(dbConnection));
         }

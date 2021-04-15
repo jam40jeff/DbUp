@@ -49,7 +49,7 @@ namespace DbUp.Tests.ScriptProvider
             [Then]
             public void the_file_should_contain_content()
             {
-                filesToExecute.ShouldAllBe(s => s.Contents.Length > 0);
+                filesToExecute.ShouldAllBe(s => s.GetContents().Length > 0);
             }
 
             [Then]
@@ -64,7 +64,7 @@ namespace DbUp.Tests.ScriptProvider
             {
                 // UTF8 encoding
                 filesToExecute.Single(f => f.Name.EndsWith("Script20130525_2_Test5.sql"))
-                    .Contents
+                    .GetContents()
                     .ShouldBe("é");
             }
 
@@ -149,7 +149,7 @@ namespace DbUp.Tests.ScriptProvider
             {
                 foreach (var sqlScript in filesToExecute)
                 {
-                    sqlScript.Contents.Length.ShouldBeGreaterThan(0);
+                    sqlScript.GetContents().Length.ShouldBeGreaterThan(0);
                 }
             }
 
@@ -209,7 +209,7 @@ namespace DbUp.Tests.ScriptProvider
             {
                 foreach (var sqlScript in filesToExecute)
                 {
-                    sqlScript.Contents.Length.ShouldBeGreaterThan(0);
+                    sqlScript.GetContents().Length.ShouldBeGreaterThan(0);
                 }
             }
 

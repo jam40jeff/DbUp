@@ -32,28 +32,28 @@ namespace DbUp.Tests.Support.SqlServer
             dbConnection.CreateCommand().Returns(command);
             var executor = new SqlScriptExecutor(() => new TestConnectionManager(dbConnection, true), () => new ConsoleUpgradeLog(), null, () => true, null, () => Substitute.For<IJournal>());
 
-            executor.Execute(new SqlScript("Test", "create $schema$.Table"));
+            executor.Execute(new PreparedSqlScript(executor, null, new SqlScript("Test", "create $schema$.Table")));
 
             command.Received().ExecuteNonQuery();
             command.CommandText.ShouldBe("create Table");
         }
 
         [Fact]
-        public void uses_variable_subtitute_preprocessor_when_running_scripts()
+        public void uses_variable_substitute_preprocessor_when_running_scripts()
         {
             var dbConnection = Substitute.For<IDbConnection>();
             var command = Substitute.For<IDbCommand>();
             dbConnection.CreateCommand().Returns(command);
             var executor = new SqlScriptExecutor(() => new TestConnectionManager(dbConnection, true), () => new ConsoleUpgradeLog(), null, () => true, null, () => Substitute.For<IJournal>());
 
-            executor.Execute(new SqlScript("Test", "create $foo$.Table"), new Dictionary<string, string> { { "foo", "bar" } });
+            executor.Execute(new PreparedSqlScript(executor, new Dictionary<string, string> { { "foo", "bar" } }, new SqlScript("Test", "create $foo$.Table")));
 
             command.Received().ExecuteNonQuery();
             command.CommandText.ShouldBe("create bar.Table");
         }
 
         [Fact]
-        public void uses_variable_subtitute_preprocessor_when_running_scripts_with_single_line_comment()
+        public void uses_variable_substitute_preprocessor_when_running_scripts_with_single_line_comment()
         {
             var oneLineComment = @"--from excel $A$6
                                   create $foo$.Table";
@@ -64,14 +64,14 @@ namespace DbUp.Tests.Support.SqlServer
             dbConnection.CreateCommand().Returns(command);
             var executor = new SqlScriptExecutor(() => new TestConnectionManager(dbConnection, true), () => new ConsoleUpgradeLog(), null, () => true, null, () => Substitute.For<IJournal>());
 
-            executor.Execute(new SqlScript("Test", oneLineComment), new Dictionary<string, string> { { "foo", "bar" } });
+            executor.Execute(new PreparedSqlScript(executor, new Dictionary<string, string> {{"foo", "bar"}}, new SqlScript("Test", oneLineComment)));
 
             command.Received().ExecuteNonQuery();
             command.CommandText.ShouldBe(oneLineCommentResult);
         }
 
         [Fact]
-        public void uses_variable_subtitute_preprocessor_when_running_scripts_with_one_line_comment()
+        public void uses_variable_substitute_preprocessor_when_running_scripts_with_one_line_comment()
         {
             var oneLineComment = @"/* from excel $A$6 */
                                   create $foo$.Table";
@@ -82,14 +82,14 @@ namespace DbUp.Tests.Support.SqlServer
             dbConnection.CreateCommand().Returns(command);
             var executor = new SqlScriptExecutor(() => new TestConnectionManager(dbConnection, true), () => new ConsoleUpgradeLog(), null, () => true, null, () => Substitute.For<IJournal>());
 
-            executor.Execute(new SqlScript("Test", oneLineComment), new Dictionary<string, string> { { "foo", "bar" } });
+            executor.Execute(new PreparedSqlScript(executor, new Dictionary<string, string> { { "foo", "bar" } }, new SqlScript("Test", oneLineComment)));
 
             command.Received().ExecuteNonQuery();
             command.CommandText.ShouldBe(oneLineCommentResult);
         }
 
         [Fact]
-        public void uses_variable_subtitute_preprocessor_when_running_scripts_with_multi_line_comment()
+        public void uses_variable_substitute_preprocessor_when_running_scripts_with_multi_line_comment()
         {
             var multiLineComment = @"/* 
                                         some comment
@@ -107,14 +107,14 @@ namespace DbUp.Tests.Support.SqlServer
             dbConnection.CreateCommand().Returns(command);
             var executor = new SqlScriptExecutor(() => new TestConnectionManager(dbConnection, true), () => new ConsoleUpgradeLog(), null, () => true, null, () => Substitute.For<IJournal>());
 
-            executor.Execute(new SqlScript("Test", multiLineComment), new Dictionary<string, string> { { "foo", "bar" } });
+            executor.Execute(new PreparedSqlScript(executor, new Dictionary<string, string> { { "foo", "bar" } }, new SqlScript("Test", multiLineComment)));
 
             command.Received().ExecuteNonQuery();
             command.CommandText.ShouldBe(multiLineCommentResult);
         }
 
         [Fact]
-        public void uses_variable_subtitute_preprocessor_when_running_scripts_with_nested_single_line_comment()
+        public void uses_variable_substitute_preprocessor_when_running_scripts_with_nested_single_line_comment()
         {
             var multiLineComment = @"/* 
                                         some comment
@@ -132,14 +132,14 @@ namespace DbUp.Tests.Support.SqlServer
             dbConnection.CreateCommand().Returns(command);
             var executor = new SqlScriptExecutor(() => new TestConnectionManager(dbConnection, true), () => new ConsoleUpgradeLog(), null, () => true, null, () => Substitute.For<IJournal>());
 
-            executor.Execute(new SqlScript("Test", multiLineComment), new Dictionary<string, string> { { "foo", "bar" } });
+            executor.Execute(new PreparedSqlScript(executor, new Dictionary<string, string> { { "foo", "bar" } }, new SqlScript("Test", multiLineComment)));
 
             command.Received().ExecuteNonQuery();
             command.CommandText.ShouldBe(multiLineCommentResult);
         }
 
         [Fact]
-        public void uses_variable_subtitute_preprocessor_when_running_scripts_with_nested_comment()
+        public void uses_variable_substitute_preprocessor_when_running_scripts_with_nested_comment()
         {
             var multiLineComment = @"/* 
                                         some comment
@@ -157,35 +157,35 @@ namespace DbUp.Tests.Support.SqlServer
             dbConnection.CreateCommand().Returns(command);
             var executor = new SqlScriptExecutor(() => new TestConnectionManager(dbConnection, true), () => new ConsoleUpgradeLog(), null, () => true, null, () => Substitute.For<IJournal>());
 
-            executor.Execute(new SqlScript("Test", multiLineComment), new Dictionary<string, string> { { "foo", "bar" } });
+            executor.Execute(new PreparedSqlScript(executor, new Dictionary<string, string> { { "foo", "bar" } }, new SqlScript("Test", multiLineComment)));
 
             command.Received().ExecuteNonQuery();
             command.CommandText.ShouldBe(multiLineCommentResult);
         }
 
         [Fact]
-        public void does_not_use_variable_subtitute_preprocessor_when_setting_false()
+        public void does_not_use_variable_substitute_preprocessor_when_setting_false()
         {
             var dbConnection = Substitute.For<IDbConnection>();
             var command = Substitute.For<IDbCommand>();
             dbConnection.CreateCommand().Returns(command);
             var executor = new SqlScriptExecutor(() => new TestConnectionManager(dbConnection, true), () => new ConsoleUpgradeLog(), null, () => false, null, () => Substitute.For<IJournal>());
 
-            executor.Execute(new SqlScript("Test", "create $foo$.Table"), new Dictionary<string, string> { { "foo", "bar" } });
+            executor.Execute(new PreparedSqlScript(executor, new Dictionary<string, string> { { "foo", "bar" } }, new SqlScript("Test", "create $foo$.Table")));
 
             command.Received().ExecuteNonQuery();
             command.CommandText.ShouldBe("create $foo$.Table");
         }
 
         [Fact]
-        public void uses_variable_subtitutes_schema()
+        public void uses_variable_substitutes_schema()
         {
             var dbConnection = Substitute.For<IDbConnection>();
             var command = Substitute.For<IDbCommand>();
             dbConnection.CreateCommand().Returns(command);
             var executor = new SqlScriptExecutor(() => new TestConnectionManager(dbConnection, true), () => new ConsoleUpgradeLog(), "foo", () => true, null, () => Substitute.For<IJournal>());
 
-            executor.Execute(new SqlScript("Test", "create $schema$.Table"));
+            executor.Execute(new PreparedSqlScript(executor, null, new SqlScript("Test", "create $schema$.Table")));
 
             command.Received().ExecuteNonQuery();
             command.CommandText.ShouldBe("create [foo].Table");
@@ -219,7 +219,7 @@ namespace DbUp.Tests.Support.SqlServer
                                                  null,
                                                  () => Substitute.For<IJournal>());
 
-            executor.Execute(new SqlScript("Test", "SELECT * FROM $schema$.[Table]"));
+            executor.Execute(new PreparedSqlScript(executor, null, new SqlScript("Test", "SELECT * FROM $schema$.[Table]")));
 
             command.Received().ExecuteReader();
             command.DidNotReceive().ExecuteNonQuery();
@@ -255,7 +255,7 @@ namespace DbUp.Tests.Support.SqlServer
 
             var executor = new SqlScriptExecutor(() => new TestConnectionManager(dbConnection, true), () => logger, null, () => true, null, () => Substitute.For<IJournal>());
 
-            Action exec = () => executor.Execute(new SqlScript("Test", "create $schema$.Table"));
+            Action exec = () => executor.Execute(new PreparedSqlScript(executor, null, new SqlScript("Test", "create $schema$.Table")));
             exec.ShouldThrow<DbException>();
             command.Received().ExecuteNonQuery();
             logger.ReceivedWithAnyArgs().WriteError("", null);

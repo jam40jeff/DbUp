@@ -5,5 +5,10 @@
     /// </summary>
     public class SupportedDatabases
     {
+        public static readonly SupportedDatabases Instance = new SupportedDatabases();
+
+        private SupportedDatabases()
+        {
+        }
     }
 }

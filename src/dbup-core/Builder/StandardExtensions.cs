@@ -662,6 +662,21 @@ public static class StandardExtensions
     }
 
     /// <summary>
+    /// Sets the sorter that sorts the list of scripts prior to execution. This allows
+    /// scripts to be run in a custom order.
+    /// </summary>
+    /// <param name="builder">The builder.</param>
+    /// <param name="sorter">The sorter.</param>
+    /// <returns>
+    /// The same builder
+    /// </returns>
+    public static UpgradeEngineBuilder WithSorter(this UpgradeEngineBuilder builder, IScriptSorter sorter)
+    {
+        builder.Configure(b => b.ScriptSorter = sorter);
+        return builder;
+    }
+
+    /// <summary>
     /// Adds a preprocessor that can replace portions of a script.
     /// </summary>
     /// <param name="builder">The builder.</param>

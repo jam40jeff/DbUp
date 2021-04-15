@@ -34,7 +34,7 @@ namespace DbUp.Redshift
            => $@"CREATE SCHEMA IF NOT EXISTS {schema}";
 
 
-        protected override void ExecuteCommandsWithinExceptionHandler(int index, SqlScript script, Action excuteCommand)
+        protected override void ExecuteCommandsWithinExceptionHandler(int index, PreparedSqlScript script, Action excuteCommand)
         {
             try
             {

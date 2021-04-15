@@ -61,7 +61,7 @@ namespace DbUp.Support
         /// Executes the specified script against a database at a given connection string.
         /// </summary>
         /// <param name="script">The script.</param>
-        public virtual void Execute(SqlScript script)
+        public virtual void Execute(PreparedSqlScript script)
         {
             Execute(script, null);
         }
@@ -83,14 +83,13 @@ namespace DbUp.Support
 
         protected abstract string GetVerifySchemaSql(string schema);
 
-        protected virtual string PreprocessScriptContents(SqlScript script, IDictionary<string, string> variables)
+        public virtual string PreprocessScriptContents(string contents, IDictionary<string, string> variables)
         {
             if (variables == null)
                 variables = new Dictionary<string, string>();
             if (Schema != null && !variables.ContainsKey("schema"))
                 variables.Add("schema", QuoteSqlObjectName(Schema));
 
-            var contents = script.Contents;
             if (string.IsNullOrEmpty(Schema))
                 contents = new StripSchemaPreprocessor().Process(contents);
             if (variablesEnabled())
@@ -106,9 +105,9 @@ namespace DbUp.Support
         /// </summary>
         /// <param name="script">The script.</param>
         /// <param name="variables">Variables to replace in the script</param>
-        public virtual void Execute(SqlScript script, IDictionary<string, string> variables)
+        public virtual void Execute(PreparedSqlScript script, IDictionary<string, string> variables)
         {
-            var contents = PreprocessScriptContents(script, variables);
+            var contents = script.Contents;
             Log().WriteInformation("Executing Database Server script '{0}'", script.Name);
 
             var connectionManager = connectionManagerFactory();
@@ -166,7 +165,7 @@ namespace DbUp.Support
             }
         }
 
-        protected abstract void ExecuteCommandsWithinExceptionHandler(int index, SqlScript script, Action executeCallback);
+        protected abstract void ExecuteCommandsWithinExceptionHandler(int index, PreparedSqlScript script, Action executeCallback);
 
         protected virtual void ExecuteNonQuery(IDbCommand command)
         {

@@ -30,7 +30,7 @@ namespace DbUp.Postgresql
 
         protected override string GetVerifySchemaSql(string schema) => $"CREATE SCHEMA IF NOT EXISTS {schema}";
 
-        protected override void ExecuteCommandsWithinExceptionHandler(int index, SqlScript script, Action executeCommand)
+        protected override void ExecuteCommandsWithinExceptionHandler(int index, PreparedSqlScript script, Action executeCommand)
         {
             try
             {

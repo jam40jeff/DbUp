@@ -6,7 +6,10 @@ namespace DbUp.Engine.Filters
 {
     public class DefaultScriptFilter : IScriptFilter
     {
-        public IEnumerable<SqlScript> Filter(IEnumerable<SqlScript> sorted, HashSet<string> executedScriptNames, ScriptNameComparer comparer)
-             => sorted.Where(s => s.SqlScriptOptions.ScriptType == ScriptType.RunAlways || !executedScriptNames.Contains(s.Name, comparer));
+        public IEnumerable<PreparedSqlScript> Filter(IEnumerable<PreparedSqlScript> sorted, Dictionary<string, AppliedSqlScript> executedScriptsByName, ScriptNameComparer comparer)
+            => sorted.Where(s =>
+                s.SqlScriptOptions.ScriptType == ScriptType.RunAlways
+                || !executedScriptsByName.ContainsKey(s.Name)
+                || (s.SqlScriptOptions.ScriptType == ScriptType.RunIfChanged && s.Contents != executedScriptsByName[s.Name].Contents));
     }
 }

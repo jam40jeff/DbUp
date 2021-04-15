@@ -8,7 +8,7 @@ namespace DbUp.Engine
     /// </summary>
     public class ScriptExecutedEventArgs : EventArgs
     {
-        public ScriptExecutedEventArgs(SqlScript script, IConnectionManager connectionManager)
+        public ScriptExecutedEventArgs(PreparedSqlScript script, IConnectionManager connectionManager)
         {
             Script = script;
             ConnectionManager = connectionManager;
@@ -22,6 +22,6 @@ namespace DbUp.Engine
         /// <summary>
         /// Returns the executed script.
         /// </summary>
-        public SqlScript Script { get; private set; }
+        public PreparedSqlScript Script { get; private set; }
     }
 }

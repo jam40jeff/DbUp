@@ -14,7 +14,7 @@ namespace DbUp.Engine.Transactions
         /// <summary>
         /// Tells the connection manager it is starting an operation
         /// </summary>
-        IDisposable OperationStarting(IUpgradeLog upgradeLog, List<SqlScript> executedScripts);
+        IDisposable OperationStarting(IUpgradeLog upgradeLog, List<PreparedSqlScript> executedScripts);
 
         /// <summary>
         /// Execute a lambda with the connection managed by the connection manager (i.e transactions, reusing connections etc)

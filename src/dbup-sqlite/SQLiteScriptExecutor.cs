@@ -40,7 +40,7 @@ namespace DbUp.SQLite
             throw new NotSupportedException();
         }
 
-        protected override void ExecuteCommandsWithinExceptionHandler(int index, SqlScript script, Action executeCommand)
+        protected override void ExecuteCommandsWithinExceptionHandler(int index, PreparedSqlScript script, Action executeCommand)
         {
             try
             {
