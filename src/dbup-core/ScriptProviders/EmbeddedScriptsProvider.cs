@@ -16,7 +16,7 @@
         readonly Assembly[] assemblies;
         readonly Encoding encoding;
         readonly Func<string, bool> filter;
-        readonly SqlScriptOptions sqlScriptOptions;
+        readonly Func<string, SqlScriptOptions> sqlScriptOptions;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EmbeddedScriptsProvider"/> class.
@@ -35,7 +35,18 @@
         /// <param name="filter">The filter.</param>
         /// <param name="encoding">The encoding.</param>
         /// <param name="sqlScriptOptions">The sql script options.</param>        
-        public EmbeddedScriptsProvider(Assembly[] assemblies, Func<string, bool> filter, Encoding encoding, SqlScriptOptions sqlScriptOptions)
+        public EmbeddedScriptsProvider(Assembly[] assemblies, Func<string, bool> filter, Encoding encoding, SqlScriptOptions sqlScriptOptions) : this(assemblies, filter, encoding, _ => sqlScriptOptions)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EmbeddedScriptsProvider"/> class.
+        /// </summary>
+        /// <param name="assemblies">The assemblies to search.</param>
+        /// <param name="filter">The filter.</param>
+        /// <param name="encoding">The encoding.</param>
+        /// <param name="sqlScriptOptions">The sql script options.</param>        
+        public EmbeddedScriptsProvider(Assembly[] assemblies, Func<string, bool> filter, Encoding encoding, Func<string, SqlScriptOptions> sqlScriptOptions)
         {
             this.assemblies = assemblies ?? throw new ArgumentNullException(nameof(assemblies));
             this.filter = filter ?? throw new ArgumentNullException(nameof(filter));
@@ -55,7 +66,7 @@
                     Assembly = assembly,
                     ResourceNames = assembly.GetManifestResourceNames().Where(filter).ToArray()
                 })
-                .SelectMany(x => x.ResourceNames.Select(resourceName => SqlScript.FromStream(resourceName, x.Assembly.GetManifestResourceStream(resourceName), encoding, sqlScriptOptions)))
+                .SelectMany(x => x.ResourceNames.Select(resourceName => SqlScript.FromStream(resourceName, x.Assembly.GetManifestResourceStream(resourceName), encoding, sqlScriptOptions(resourceName))))
                 .OrderBy(sqlScript => sqlScript.Name)
                 .ToList();
         }

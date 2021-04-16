@@ -88,7 +88,7 @@ namespace DbUp.Support
             InsertJournalEntry(dbCommandFactory, script);
         }
 
-        private static string ScriptTypeToString(ScriptType scriptType)
+        protected static string ScriptTypeToString(ScriptType scriptType)
         {
             switch (scriptType)
             {
@@ -103,7 +103,7 @@ namespace DbUp.Support
             }
         }
 
-        private static ScriptType ScriptTypeFromString(string scriptType)
+        protected static ScriptType ScriptTypeFromString(string scriptType)
         {
             switch (scriptType)
             {
@@ -118,14 +118,10 @@ namespace DbUp.Support
             }
         }
 
-        protected IDbCommand GetCreateTableCommand(Func<IDbCommand> dbCommandFactory)
-        {
-            var command = dbCommandFactory();
-            var primaryKeyName = sqlObjectParser.QuoteIdentifier("PK_" + UnquotedSchemaTableName + "_Id");
-            command.CommandText = CreateSchemaTableSql(primaryKeyName);
-            command.CommandType = CommandType.Text;
-            return command;
-        }
+        /// <summary>
+        /// Creates the journal table.
+        /// </summary>
+        protected abstract void CreateJournalTable(Func<IDbCommand> dbCommandFactory);
 
         /// <summary>
         /// Inserts a journal entry.
@@ -136,12 +132,6 @@ namespace DbUp.Support
         /// Gets the journal entries.
         /// </summary>
         protected abstract List<AppliedSqlScript> GetJournalEntries(Func<IDbCommand> dbCommandFactory);
-
-        /// <summary>
-        /// Sql for creating journal table
-        /// </summary>
-        /// <param name="quotedPrimaryKeyName">Following PK_{TableName}_Id naming</param>
-        protected abstract string CreateSchemaTableSql(string quotedPrimaryKeyName);
 
         /// <summary>
         /// Unquotes a quoted identifier.
@@ -162,11 +152,8 @@ namespace DbUp.Support
             if (!journalExists && !DoesTableExist(dbCommandFactory))
             {
                 Log().WriteInformation(string.Format("Creating the {0} table", FqSchemaTableName));
-                // We will never change the schema of the initial table create.
-                using (var command = GetCreateTableCommand(dbCommandFactory))
-                {
-                    command.ExecuteNonQuery();
-                }
+
+                CreateJournalTable(dbCommandFactory);
 
                 Log().WriteInformation(string.Format("The {0} table has been created", FqSchemaTableName));
 
