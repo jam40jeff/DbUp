@@ -15,7 +15,7 @@ namespace DbUp.Yellowbrick
     /// </summary>
     public class YellowbrickTableJournal : AdvancedTableJournal
     {
-        private readonly ISqlObjectParser sqlObjectParser;
+        readonly ISqlObjectParser sqlObjectParser;
 
         /// <summary>
         /// Creates a new Yellowbrick table journal.
@@ -50,7 +50,7 @@ namespace DbUp.Yellowbrick
             {
                 command.CommandText = $@"select q.schemaversionsid, q.scriptname, q.scripttype, q.applied, s.script, s.sortorder from
 (select schemaversionsid, scriptname, scripttype, applied, row_number() over (partition by scriptname order by applied desc) as rownum from {FqSchemaTableName}) as q
-join {FqScriptsTableName} as s on q.schemaversionsid = s.schemaversionsid
+left join {FqScriptsTableName} as s on q.schemaversionsid = s.schemaversionsid
 where q.rownum = 1
 order by q.scriptname,s.sortorder";
                 command.CommandType = CommandType.Text;
@@ -71,13 +71,13 @@ order by q.scriptname,s.sortorder";
                                 dataReader.GetString(scriptNameIndex),
                                 ScriptTypeFromString(dataReader.GetString(scriptTypeIndex)),
                                 dataReader.GetDateTime(appliedIndex),
-                                dataReader.GetString(scriptIndex),
-                                dataReader.GetInt32(sortOrderIndex)));
+                                dataReader.IsDBNull(scriptIndex) ? null : dataReader.GetString(scriptIndex),
+                                dataReader.IsDBNull(sortOrderIndex) ? null : (int?)dataReader.GetInt32(sortOrderIndex)));
                     }
                 }
 
                 return results.GroupBy(r => new {r.Id, r.ScriptName, r.ScriptType, r.Applied})
-                    .Select(g => new AppliedSqlScript(g.Key.ScriptName, g.Key.ScriptType, ReassembleLongString(g.OrderBy(r => r.SortOrder).Select(r => r.Script)), g.Key.Applied))
+                    .Select(g => new AppliedSqlScript(g.Key.ScriptName, g.Key.ScriptType, g.Any(r => r.SortOrder == null) ? null : ReassembleLongString(g.OrderBy(r => r.SortOrder).Select(r => r.Script)), g.Key.Applied))
                     .ToList();
             }
         }
@@ -118,7 +118,7 @@ order by q.scriptname,s.sortorder";
             foreach (string contents in contentsChunks)
             {
                 counter++;
-                
+
                 using (var command = dbCommandFactory())
                 {
                     var idParam = command.CreateParameter();
@@ -202,7 +202,7 @@ order by q.scriptname,s.sortorder";
 
         private class StoredScript
         {
-            public StoredScript(Guid id, string scriptName, ScriptType scriptType, DateTime applied, string script, int sortOrder)
+            public StoredScript(Guid id, string scriptName, ScriptType scriptType, DateTime applied, string script, int? sortOrder)
             {
                 Id = id;
                 ScriptName = scriptName;
@@ -217,7 +217,7 @@ order by q.scriptname,s.sortorder";
             public ScriptType ScriptType { get; }
             public DateTime Applied { get; }
             public string Script { get; }
-            public int SortOrder { get; }
+            public int? SortOrder { get; }
         }
     }
 }
