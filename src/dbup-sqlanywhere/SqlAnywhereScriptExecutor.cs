@@ -34,18 +34,18 @@ namespace DbUp.SqlAnywhere
             throw new NotSupportedException();
         }
 
-        protected override void ExecuteCommandsWithinExceptionHandler(int index, PreparedSqlScript script, Action excuteCommand)
+        protected override void HandleException(int index, PreparedSqlScript script, Exception e)
         {
-            try
-            {
-                excuteCommand();
-            }
-            catch (Sap.Data.SQLAnywhere.SAException sqlException)
+            Sap.Data.SQLAnywhere.SAException sqlException = e as Sap.Data.SQLAnywhere.SAException;
+            if (sqlException != null)
             {
                 Log().WriteInformation("SQLAnywhere exception has occured in script: '{0}'", script.Name);
                 Log().WriteError("Script block number: {0}; Message: {1}", index, sqlException.Message);
                 Log().WriteError(sqlException.ToString());
-                throw;
+            }
+            else
+            {
+                base.HandleException(index, script, e);
             }
         }
     }

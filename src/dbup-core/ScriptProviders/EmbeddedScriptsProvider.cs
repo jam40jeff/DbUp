@@ -18,7 +18,7 @@
         readonly Func<string, bool> filter;
         readonly Func<string, SqlScriptOptions> sqlScriptOptions;
 
-        /// <summary>
+        /// <summary>e
         /// Initializes a new instance of the <see cref="EmbeddedScriptsProvider"/> class.
         /// </summary>
         /// <param name="assemblies">The assemblies to search.</param>
@@ -61,12 +61,8 @@
         public IEnumerable<SqlScript> GetScripts(IConnectionManager connectionManager)
         {
             return assemblies
-                .Select(assembly => new
-                {
-                    Assembly = assembly,
-                    ResourceNames = assembly.GetManifestResourceNames().Where(filter).ToArray()
-                })
-                .SelectMany(x => x.ResourceNames.Select(resourceName => SqlScript.FromStream(resourceName, x.Assembly.GetManifestResourceStream(resourceName), encoding, sqlScriptOptions(resourceName))))
+                .Select(assembly => new {Assembly = assembly, ResourceNames = assembly.GetManifestResourceNames().Where(filter).ToArray()})
+                .SelectMany(x => x.ResourceNames.Select(resourceName => SqlScript.FromStream(resourceName, () => x.Assembly.GetManifestResourceStream(resourceName), encoding, sqlScriptOptions(resourceName))))
                 .OrderBy(sqlScript => sqlScript.Name)
                 .ToList();
         }

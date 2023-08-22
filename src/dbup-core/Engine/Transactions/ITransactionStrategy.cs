@@ -14,6 +14,20 @@ namespace DbUp.Engine.Transactions
         /// Executes an action
         /// </summary>
         /// <param name="action"></param>
+        void ExecuteWithConnection(Action<Func<IDbConnection>, Func<IDbTransaction>> action);
+
+        /// <summary>
+        /// Executes an action which has a result
+        /// </summary>
+        /// <param name="actionWithResult"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        T ExecuteWithConnection<T>(Func<Func<IDbConnection>, Func<IDbTransaction>, T> actionWithResult);
+
+        /// <summary>
+        /// Executes an action
+        /// </summary>
+        /// <param name="action"></param>
         void Execute(Action<Func<IDbCommand>> action);
 
         /// <summary>

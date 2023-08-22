@@ -57,7 +57,7 @@ namespace DbUp.Oracle
                 ";
         }
 
-        protected override string GetInsertJournalEntrySql(string scriptName, string applied)
+        protected override string GetInsertJournalEntrySql(string scriptName, string applied, string @appliedBy)
         {
             var unquotedSchemaTableName = UnquotedSchemaTableName.ToUpper(English);
             return $"insert into {unquotedSchemaTableName} (ScriptName, Applied) values (:" + scriptName.Replace("@", "") + ",:" + applied.Replace("@", "") + ")";

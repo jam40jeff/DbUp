@@ -33,18 +33,18 @@ namespace DbUp.SqlCe
             throw new NotSupportedException();
         }
 
-        protected override void ExecuteCommandsWithinExceptionHandler(int index, PreparedSqlScript script, Action executeCommand)
+        protected override void HandleException(int index, PreparedSqlScript script, Exception e)
         {
-            try
-            {
-                executeCommand();
-            }
-            catch (SqlCeException exception)
+            SqlCeException exception = e as SqlCeException;
+            if (exception != null)
             {
                 Log().WriteInformation("SqlCe exception has occured in script: '{0}'", script.Name);
                 Log().WriteError("Script block number: {0}; Native Error: {1}; Message: {2}", index, exception.NativeError, exception.Message);
                 Log().WriteError(exception.ToString());
-                throw;
+            }
+            else
+            {
+                base.HandleException(index, script, e);
             }
         }
     }

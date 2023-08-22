@@ -139,33 +139,36 @@ namespace DbUp.Support
                             {
                                 executeAction = ExecuteNonQuery;
                             }
-                            // Execute within a wrapper that allows a provider specific derived class to handle provider specific exception.
-                            ExecuteCommandsWithinExceptionHandler(index, script, () =>
-                            {
-                                executeAction(command);
-                            });
+
+                            executeAction(command);
                         }
                     }
 
                     journal.StoreExecutedScript(script, dbCommandFactory);
                 });
             }
-            catch (DbException sqlException)
+            catch (Exception ex)
+            {
+                HandleException(index, script, ex);
+                throw new ScriptExecutionException(index, script, ex);
+            }
+        }
+
+        protected virtual void HandleException(int index, PreparedSqlScript script, Exception e)
+        {
+            Exception sqlException = e as DbException;
+            if (sqlException != null)
             {
                 Log().WriteInformation("DB exception has occured in script: '{0}'", script.Name);
                 Log().WriteError("Script block number: {0}; Message: {1}", index, sqlException.Message);
                 Log().WriteError("{0}", sqlException.ToString());
-                throw;
             }
-            catch (Exception ex)
+            else
             {
                 Log().WriteInformation("Exception has occured in script: '{0}'", script.Name);
-                Log().WriteError("{0}", ex.ToString());
-                throw;
+                Log().WriteError("{0}", e.ToString());
             }
         }
-
-        protected abstract void ExecuteCommandsWithinExceptionHandler(int index, PreparedSqlScript script, Action executeCallback);
 
         protected virtual void ExecuteNonQuery(IDbCommand command)
         {

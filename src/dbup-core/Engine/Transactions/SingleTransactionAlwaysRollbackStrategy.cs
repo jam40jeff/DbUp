@@ -14,6 +14,38 @@ namespace DbUp.Engine.Transactions
         PreparedSqlScript[] executedScriptsListBeforeExecution;
         List<PreparedSqlScript> executedScriptsCollection;
 
+        public void ExecuteWithConnection(Action<Func<IDbConnection>, Func<IDbTransaction>> action)
+        {
+            if (errorOccured)
+                throw new InvalidOperationException("Error occured on previous script execution");
+
+            try
+            {
+                action(() => connection, () => transaction);
+            }
+            catch (Exception)
+            {
+                errorOccured = true;
+                throw;
+            }
+        }
+
+        public T ExecuteWithConnection<T>(Func<Func<IDbConnection>, Func<IDbTransaction>, T> actionWithResult)
+        {
+            if (errorOccured)
+                throw new InvalidOperationException("Error occured on previous script execution");
+
+            try
+            {
+                return actionWithResult(() => connection, () => transaction);
+            }
+            catch (Exception)
+            {
+                errorOccured = true;
+                throw;
+            }
+        }
+
         public void Execute(Action<Func<IDbCommand>> action)
         {
             if (errorOccured)

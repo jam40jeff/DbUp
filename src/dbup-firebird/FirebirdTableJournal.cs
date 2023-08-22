@@ -65,7 +65,7 @@ END;";
             return $"select 1 from RDB$RELATIONS where RDB$SYSTEM_FLAG = 0 and RDB$RELATION_NAME = '{UnquotedSchemaTableName}'";
         }
 
-        protected override string GetInsertJournalEntrySql(string @scriptName, string @applied)
+        protected override string GetInsertJournalEntrySql(string @scriptName, string @applied, string @appliedBy)
         {
             return $"insert into {FqSchemaTableName} (ScriptName, Applied) values ({scriptName}, {applied})";
         }

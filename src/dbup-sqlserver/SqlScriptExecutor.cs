@@ -33,18 +33,18 @@ namespace DbUp.SqlServer
             return string.Format(@"IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = N'{0}') Exec('CREATE SCHEMA [{0}]')", Schema);
         }
 
-        protected override void ExecuteCommandsWithinExceptionHandler(int index, PreparedSqlScript script, Action executeCommand)
+        protected override void HandleException(int index, PreparedSqlScript script, Exception e)
         {
-            try
-            {
-                executeCommand();
-            }
-            catch (SqlException sqlException)
+            SqlException sqlException = e as SqlException;
+            if (sqlException != null)
             {
                 Log().WriteInformation("SQL exception has occured in script: '{0}'", script.Name);
                 Log().WriteError("Script block number: {0}; Block line {1}; Procedure {2}; Number {3}; Message: {4}", index, sqlException.LineNumber, sqlException.Procedure, sqlException.Number, sqlException.Message);
                 Log().WriteError(sqlException.ToString());
-                throw;
+            }
+            else
+            {
+                base.HandleException(index, script, e);
             }
         }
     }

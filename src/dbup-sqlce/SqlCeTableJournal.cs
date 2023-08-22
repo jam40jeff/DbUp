@@ -27,7 +27,7 @@ namespace DbUp.SqlCe
         {
         }
 
-        protected override string GetInsertJournalEntrySql(string @scriptName, string @applied)
+        protected override string GetInsertJournalEntrySql(string @scriptName, string @applied, string @appliedBy)
         {
             return $"insert into {FqSchemaTableName} (ScriptName, Applied) values ({@scriptName}, {@applied})";
         }

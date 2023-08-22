@@ -27,7 +27,8 @@ namespace DbUp.Support
             Func<IConnectionManager> connectionManager,
             Func<IUpgradeLog> logger,
             ISqlObjectParser sqlObjectParser,
-            string schema, string table)
+            string schema,
+            string table)
         {
             this.sqlObjectParser = sqlObjectParser;
             ConnectionManager = connectionManager;
@@ -43,7 +44,7 @@ namespace DbUp.Support
 
         /// <summary>
         /// Schema table name, no schema and unquoted
-        /// </summary>
+        /// </summary>c
         protected string UnquotedSchemaTableName { get; private set; }
 
         /// <summary>
@@ -59,7 +60,7 @@ namespace DbUp.Support
         {
             return ConnectionManager().ExecuteCommandsWithManagedConnection(dbCommandFactory =>
             {
-                if (journalExists || DoesTableExist(dbCommandFactory))
+                if (journalExists || DoesTableExist(dbCommandFactory, UnquotedSchemaTableName))
                 {
                     journalExists = true;
                     
@@ -149,7 +150,7 @@ namespace DbUp.Support
 
         public virtual void EnsureTableExistsAndIsLatestVersion(Func<IDbCommand> dbCommandFactory)
         {
-            if (!journalExists && !DoesTableExist(dbCommandFactory))
+            if (!journalExists && !DoesTableExist(dbCommandFactory, UnquotedSchemaTableName))
             {
                 Log().WriteInformation(string.Format("Creating the {0} table", FqSchemaTableName));
 
@@ -163,12 +164,12 @@ namespace DbUp.Support
             journalExists = true;
         }
 
-        protected bool DoesTableExist(Func<IDbCommand> dbCommandFactory)
+        protected bool DoesTableExist(Func<IDbCommand> dbCommandFactory, string tableName)
         {
-            Log().WriteInformation("Checking whether journal table exists..");
+            Log().WriteInformation(string.Format("Checking whether journal table {0}.{1} exists.", SchemaTableSchema, tableName));
             using (var command = dbCommandFactory())
             {
-                command.CommandText = DoesTableExistSql();
+                command.CommandText = DoesTableExistSql(tableName);
                 command.CommandType = CommandType.Text;
                 var executeScalar = command.ExecuteScalar();
                 if (executeScalar == null)
@@ -183,11 +184,11 @@ namespace DbUp.Support
 
         /// <summary>Verify, using database-specific queries, if the table exists in the database.</summary>
         /// <returns>1 if table exists, 0 otherwise</returns>
-        protected virtual string DoesTableExistSql()
+        protected virtual string DoesTableExistSql(string tableName)
         {
             return string.IsNullOrEmpty(SchemaTableSchema)
-                ? string.Format("select 1 from INFORMATION_SCHEMA.TABLES where TABLE_NAME = '{0}'", UnquotedSchemaTableName)
-                : string.Format("select 1 from INFORMATION_SCHEMA.TABLES where TABLE_NAME = '{0}' and TABLE_SCHEMA = '{1}'", UnquotedSchemaTableName, SchemaTableSchema);
+                ? string.Format("select 1 from INFORMATION_SCHEMA.TABLES where TABLE_NAME = '{0}'", tableName)
+                : string.Format("select 1 from INFORMATION_SCHEMA.TABLES where TABLE_NAME = '{0}' and TABLE_SCHEMA = '{1}'", tableName, SchemaTableSchema);
         }
     }
 }

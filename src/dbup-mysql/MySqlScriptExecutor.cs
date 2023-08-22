@@ -33,13 +33,10 @@ namespace DbUp.MySql
             throw new NotSupportedException();
         }
 
-        protected override void ExecuteCommandsWithinExceptionHandler(int index, PreparedSqlScript script, Action executeCommand)
+        protected override void HandleException(int index, PreparedSqlScript script, Exception e)
         {
-            try
-            {
-                executeCommand();
-            }
-            catch (MySqlException exception)
+            MySqlException exception = e as MySqlException;
+            if (exception != null)
             {
 #if MY_SQL_DATA_6_9_5
                 var code = exception.ErrorCode;
@@ -49,9 +46,11 @@ namespace DbUp.MySql
                 Log().WriteInformation("MySql exception has occured in script: '{0}'", script.Name);
                 Log().WriteError("Script block number: {0}; MySql error code: {1}; Number {2}; Message: {3}", index, code, exception.Number, exception.Message);
                 Log().WriteError(exception.ToString());
-                throw;
+            }
+            else
+            {
+                base.HandleException(index, script, e);
             }
         }
-
     }
 }

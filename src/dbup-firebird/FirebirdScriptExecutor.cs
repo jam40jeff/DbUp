@@ -33,18 +33,18 @@ namespace DbUp.Firebird
             throw new NotSupportedException();
         }
 
-        protected override void ExecuteCommandsWithinExceptionHandler(int index, PreparedSqlScript script, Action executeCommand)
+        protected override void HandleException(int index, PreparedSqlScript script, Exception e)
         {
-            try
-            {
-                executeCommand();
-            }
-            catch (FbException fbException)
+            FbException fbException = e as FbException;
+            if (fbException != null)
             {
                 Log().WriteInformation("Firebird exception has occured in script: '{0}'", script.Name);
                 Log().WriteError("Script block number: {0}; Firebird error code: {1}; SQLSTATE {2}; Message: {3}", index, fbException.ErrorCode, fbException.SQLSTATE, fbException.Message);
                 Log().WriteError(fbException.ToString());
-                throw;
+            }
+            else
+            {
+                base.HandleException(index, script, e);
             }
         }
     }

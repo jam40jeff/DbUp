@@ -29,7 +29,9 @@ namespace DbUp.Engine
         public SqlScript(string name, string contents, SqlScriptOptions sqlScriptOptions)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
-            ContentProvider = () => contents;
+            string contentsLocal = null;
+            ContentProvider = (scriptExecutor, variables) => contentsLocal ?? (contentsLocal = scriptExecutor.PreprocessScriptContents(contents, variables));
+            ContentStreamProvider = (scriptExecutor, variables) => new MemoryStream(Encoding.UTF8.GetBytes(ContentProvider(scriptExecutor, variables)));
             SqlScriptOptions = sqlScriptOptions ?? new SqlScriptOptions();
         }
 
@@ -42,11 +44,58 @@ namespace DbUp.Engine
         public SqlScript(string name, Func<string> contentProvider, SqlScriptOptions sqlScriptOptions)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
-            ContentProvider = contentProvider;
+            string contentsLocal = null;
+            ContentProvider = (scriptExecutor, variables) => contentsLocal ?? (contentsLocal = scriptExecutor.PreprocessScriptContents(contentProvider(), variables));
+            ContentStreamProvider = (scriptExecutor, variables) => new MemoryStream(Encoding.UTF8.GetBytes(ContentProvider(scriptExecutor, variables)));
             SqlScriptOptions = sqlScriptOptions ?? new SqlScriptOptions();
         }
 
-        internal Func<string> ContentProvider { get; }
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SqlScript"/> class with a specific options - script type and a script order
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <param name="contentProvider">A function to get the contents.</param>
+        /// <param name="sqlScriptOptions">The script options.</param>        
+        public SqlScript(string name, Func<IScriptExecutor, IDictionary<string, string>, string> contentProvider, SqlScriptOptions sqlScriptOptions)
+        {
+            Name = name ?? throw new ArgumentNullException(nameof(name));
+            ContentProvider = contentProvider;
+            ContentStreamProvider = (scriptExecutor, variables) => new MemoryStream(Encoding.UTF8.GetBytes(ContentProvider(scriptExecutor, variables)));
+            SqlScriptOptions = sqlScriptOptions ?? new SqlScriptOptions();
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SqlScript"/> class with a specific options - script type and a script order
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <param name="contentProvider">A function to get the contents.</param>
+        /// <param name="contentStreamProvider">A function to get the content stream.</param>
+        /// <param name="sqlScriptOptions">The script options.</param>        
+        public SqlScript(string name, Func<IScriptExecutor, IDictionary<string, string>, string> contentProvider, Func<IScriptExecutor, IDictionary<string, string>, Stream> contentStreamProvider, SqlScriptOptions sqlScriptOptions)
+        {
+            Name = name ?? throw new ArgumentNullException(nameof(name));
+            ContentProvider = contentProvider;
+            ContentStreamProvider = contentStreamProvider;
+            SqlScriptOptions = sqlScriptOptions ?? new SqlScriptOptions();
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SqlScript"/> class with a specific options - script type and a script order
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <param name="contentStreamProvider">A function to get the content stream.</param>
+        /// <param name="sqlScriptOptions">The script options.</param>        
+        public SqlScript(string name, Func<IScriptExecutor, IDictionary<string, string>, Stream> contentStreamProvider, SqlScriptOptions sqlScriptOptions)
+        {
+            Name = name ?? throw new ArgumentNullException(nameof(name));
+            ContentProvider = (_, __) => throw new NotSupportedException();
+            ContentStreamProvider = contentStreamProvider;
+            SqlScriptOptions = sqlScriptOptions ?? new SqlScriptOptions();
+        }
+
+        internal Func<IScriptExecutor, IDictionary<string, string>, string> ContentProvider { get; }
+        
+        internal Func<IScriptExecutor, IDictionary<string, string>, Stream> ContentStreamProvider { get; }
 
         /// <summary>
         /// Gets the SQL Script Options
@@ -109,11 +158,8 @@ namespace DbUp.Engine
                 .Replace(Path.DirectorySeparatorChar, '.')
                 .Replace(Path.AltDirectorySeparatorChar, '.')
                 .Trim('.');
-
-            using (var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read))
-            {
-                return FromStream(filename, fileStream, encoding, sqlScriptOptions);
-            }
+            
+            return FromStream(filename, () => new FileStream(path, FileMode.Open, FileAccess.Read), encoding, sqlScriptOptions);
         }
 
         /// <summary>
@@ -122,7 +168,7 @@ namespace DbUp.Engine
         /// <param name="scriptName"></param>
         /// <param name="stream"></param>
         /// <returns></returns>
-        public static SqlScript FromStream(string scriptName, Stream stream)
+        public static SqlScript FromStream(string scriptName, Func<Stream> stream)
         {
             return FromStream(scriptName, stream, DbUpDefaults.DefaultEncoding, new SqlScriptOptions());
         }
@@ -134,7 +180,7 @@ namespace DbUp.Engine
         /// <param name="stream"></param>
         /// <param name="encoding"></param>
         /// <returns></returns>
-        public static SqlScript FromStream(string scriptName, Stream stream, Encoding encoding)
+        public static SqlScript FromStream(string scriptName, Func<Stream> stream, Encoding encoding)
         {
             return FromStream(scriptName, stream, encoding, new SqlScriptOptions());
         }
@@ -147,16 +193,27 @@ namespace DbUp.Engine
         /// <param name="encoding"></param>  
         /// <param name="sqlScriptOptions">The script options</param>        
         /// <returns></returns>
-        public static SqlScript FromStream(string scriptName, Stream stream, Encoding encoding, SqlScriptOptions sqlScriptOptions)
+        public static SqlScript FromStream(string scriptName, Func<Stream> stream, Encoding encoding, SqlScriptOptions sqlScriptOptions)
         {
             if (encoding == null)
                 throw new ArgumentNullException(nameof(encoding));
 
-            using (var resourceStreamReader = new StreamReader(stream, encoding, true))
+            string GetContents()
             {
-                var contents = resourceStreamReader.ReadToEnd();
-                return new SqlScript(scriptName, contents, sqlScriptOptions);
+                using (var resourceStreamReader = new StreamReader(stream(), encoding, true))
+                {
+                    return resourceStreamReader.ReadToEnd();
+                }
             }
+
+            string contentsLocal = null;
+            string ContentProvider(IScriptExecutor scriptExecutor, IDictionary<string, string> variables) => contentsLocal ?? (contentsLocal = scriptExecutor.PreprocessScriptContents(GetContents(), variables));
+
+            return new SqlScript(
+                scriptName,
+                ContentProvider,
+                (_, __) => stream(),
+                sqlScriptOptions);
         }
     }
 }

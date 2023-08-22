@@ -52,6 +52,8 @@ namespace DbUp.Engine.Transactions
             transactionStrategy = transactionStrategyFactory[TransactionMode]();
             transactionStrategy.Initialise(upgradeConnection, upgradeLog, executedScripts);
 
+            SetRole(transactionStrategy);
+
             return new DelegateDisposable(() =>
             {
                 transactionStrategy.Dispose();
@@ -75,6 +77,7 @@ namespace DbUp.Engine.Transactions
                         upgradeConnection.Open();
                     var strategy = transactionStrategyFactory[TransactionMode.NoTransaction]();
                     strategy.Initialise(upgradeConnection, upgradeLog, new List<PreparedSqlScript>());
+                    SetRole(strategy);
                     strategy.Execute(dbCommandFactory =>
                     {
                         using (var command = dbCommandFactory())
@@ -92,6 +95,30 @@ namespace DbUp.Engine.Transactions
                 errorMessage = ex.Message;
                 return false;
             }
+        }
+
+        protected virtual void SetRole(ITransactionStrategy strategy)
+        {
+        }
+
+        /// <summary>
+        /// Executes an action using the specified transaction mode 
+        /// </summary>
+        /// <param name="action">The action to execute</param>
+        public void ExecuteWithManagedConnection(Action<Func<IDbConnection>, Func<IDbTransaction>> action)
+        {
+            transactionStrategy.ExecuteWithConnection(action);
+        }
+
+        /// <summary>
+        /// Executes an action which has a result using the specified transaction mode 
+        /// </summary>
+        /// <param name="actionWithResult">The action to execute</param>
+        /// <typeparam name="T">The result type</typeparam>
+        /// <returns>The result of the action</returns>
+        public T ExecuteWithManagedConnection<T>(Func<Func<IDbConnection>, Func<IDbTransaction>, T> actionWithResult)
+        {
+            return transactionStrategy.ExecuteWithConnection(actionWithResult);
         }
 
         /// <summary>

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace DbUp.Engine
 {
@@ -27,12 +28,15 @@ namespace DbUp.Engine
             this.sqlScript = sqlScript;
         }
 
-        private string PreprocessContents(string contents) => scriptExecutor.PreprocessScriptContents(contents, variables);
-
         /// <summary>
         /// Gets the contents of the script.
         /// </summary>
-        public string Contents => content ?? (content = PreprocessContents(sqlScript.ContentProvider()));
+        public string Contents => content ?? (content = sqlScript.ContentProvider(scriptExecutor, variables));
+
+        /// <summary>
+        /// Gets the contents of the script as a stream.
+        /// </summary>
+        public Stream GetContentStream() => sqlScript.ContentStreamProvider(scriptExecutor, variables);
 
         /// <summary>
         /// Gets the SQL Script Options

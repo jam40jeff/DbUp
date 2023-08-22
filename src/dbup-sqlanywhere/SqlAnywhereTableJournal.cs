@@ -30,7 +30,7 @@ namespace DbUp.SqlAnywhere
 
         public static CultureInfo English = new CultureInfo("en-UK", false);
 
-        protected override string GetInsertJournalEntrySql(string @scriptName, string @applied)
+        protected override string GetInsertJournalEntrySql(string @scriptName, string @applied, string @appliedBy)
         {
             return $"insert into {FqSchemaTableName} (ScriptName, Applied) values (? ,?)";
         }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using DbUp.Builder;
+using DbUp.Support;
 
 namespace DbUp.Engine
 {
@@ -95,11 +96,17 @@ namespace DbUp.Engine
             }
             catch (Exception ex)
             {
-                if (executedScript != null)
+                ScriptExecutionException e = ex as ScriptExecutionException;
+                if (e == null)
                 {
-                    ex.Data["Error occurred in script: "] = executedScript.Name;
+                    if (executedScript != null)
+                    {
+                        ex.Data["Error occurred in script: "] = executedScript.Name;
+                    }
+
+                    configuration.Log.WriteError("Upgrade failed due to an unexpected exception:\r\n{0}", ex.ToString());
                 }
-                configuration.Log.WriteError("Upgrade failed due to an unexpected exception:\r\n{0}", ex.ToString());
+
                 return new DatabaseUpgradeResult(executed, false, ex, executedScript);
             }
         }

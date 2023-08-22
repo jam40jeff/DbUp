@@ -40,13 +40,10 @@ namespace DbUp.SQLite
             throw new NotSupportedException();
         }
 
-        protected override void ExecuteCommandsWithinExceptionHandler(int index, PreparedSqlScript script, Action executeCommand)
+        protected override void HandleException(int index, PreparedSqlScript script, Exception e)
         {
-            try
-            {
-                executeCommand();
-            }
-            catch (SQLiteException exception)
+            SQLiteException exception = e as SQLiteException;
+            if (exception != null)
             {
                 Log().WriteInformation("SQLite exception has occured in script: '{0}'", script.Name);
 #if NETCORE
@@ -55,9 +52,11 @@ namespace DbUp.SQLite
                 Log().WriteError("Script block number: {0}; Error Code: {1}; Message: {2}", index, exception.ErrorCode, exception.Message);
 #endif
                 Log().WriteError(exception.ToString());
-                throw;
+            }
+            else
+            {
+                base.HandleException(index, script, e);
             }
         }
-
     }
 }

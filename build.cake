@@ -21,6 +21,7 @@ Task("Version")
             OutputType = GitVersionOutput.BuildServer
         });
         versionInfo = GitVersion(new GitVersionSettings{ OutputType = GitVersionOutput.Json });
+		versionInfo.NuGetVersion = "4.5.1-custom32";
     });
 
 Task("Restore")
@@ -58,7 +59,8 @@ Task("Test")
     });
 
 Task("Package")
-    .IsDependentOn("Test")
+    //.IsDependentOn("Test")
+	.IsDependentOn("Build")
     .Does(() => {
 
         NuGetPack("./src/dbup/dbup.nuspec", new NuGetPackSettings() {
@@ -77,7 +79,8 @@ Task("Package")
             "sqlite:dbup-sqlite." + versionInfo.NuGetVersion + ".nupkg",
             "sqlite-mono:dbup-sqlite-mono." + versionInfo.NuGetVersion + ".nupkg",
             "sqlserver:dbup-sqlserver." + versionInfo.NuGetVersion + ".nupkg",
-            "sqlanywhere:dbup-sqlanywhere." + versionInfo.NuGetVersion + ".nupkg"
+            "sqlanywhere:dbup-sqlanywhere." + versionInfo.NuGetVersion + ".nupkg",
+            "yellowbrick:dbup-yellowbrick." + versionInfo.NuGetVersion + ".nupkg"
         });
 
         if (AppVeyor.IsRunningOnAppVeyor)

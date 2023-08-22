@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Data;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using DbUp;
 using DbUp.Builder;
 using DbUp.Engine.Output;
@@ -31,12 +32,25 @@ public static class YellowbrickExtensions
     /// </summary>
     /// <param name="supported">Fluent helper type.</param>
     /// <param name="connectionString">Yellowbrick database connection string.</param>
-    /// <param name="schema">The schema in which to check for changes</param>
+    /// <param name="role">Role to execute as.</param>
     /// <returns>
     /// A builder for a database upgrader designed for Yellowbrick databases.
     /// </returns>
-    public static UpgradeEngineBuilder YellowbrickDatabase(this SupportedDatabases supported, string connectionString, string schema)
-        => YellowbrickDatabase(new YellowbrickConnectionManager(connectionString), schema);
+    public static UpgradeEngineBuilder YellowbrickDatabase(this SupportedDatabases supported, string connectionString, string role)
+        => YellowbrickDatabase(supported, connectionString, null, role);
+
+    /// <summary>
+    /// Creates an upgrader for Yellowbrick databases.
+    /// </summary>
+    /// <param name="supported">Fluent helper type.</param>
+    /// <param name="connectionString">Yellowbrick database connection string.</param>
+    /// <param name="schema">The schema in which to check for changes</param>
+    /// <param name="role">Role to execute as.</param>
+    /// <returns>
+    /// A builder for a database upgrader designed for Yellowbrick databases.
+    /// </returns>
+    public static UpgradeEngineBuilder YellowbrickDatabase(this SupportedDatabases supported, string connectionString, string schema, string role)
+        => YellowbrickDatabase(new YellowbrickConnectionManager(connectionString, role), schema);
 
     /// <summary>
     /// Creates an upgrader for Yellowbrick databases that use SSL.
@@ -49,7 +63,21 @@ public static class YellowbrickExtensions
     /// A builder for a database upgrader designed for Yellowbrick databases.
     /// </returns>
     public static UpgradeEngineBuilder YellowbrickDatabase(this SupportedDatabases supported, string connectionString, string schema, X509Certificate2 certificate)
-        => YellowbrickDatabase(new YellowbrickConnectionManager(connectionString, certificate), schema);
+        => YellowbrickDatabase(new YellowbrickConnectionManager(connectionString, null, certificate), schema);
+
+    /// <summary>
+    /// Creates an upgrader for Yellowbrick databases that use SSL.
+    /// </summary>
+    /// <param name="supported">Fluent helper type.</param>
+    /// <param name="connectionString">Yellowbrick database connection string.</param>
+    /// <param name="schema">The schema in which to check for changes</param>
+    /// <param name="role">Role to execute as.</param>
+    /// <param name="certificate">Certificate for securing connection.</param>
+    /// <returns>
+    /// A builder for a database upgrader designed for Yellowbrick databases.
+    /// </returns>
+    public static UpgradeEngineBuilder YellowbrickDatabase(this SupportedDatabases supported, string connectionString, string schema, string role, X509Certificate2 certificate)
+        => YellowbrickDatabase(new YellowbrickConnectionManager(connectionString, role, certificate), schema);
 
     /// <summary>
     /// Creates an upgrader for Yellowbrick databases.
@@ -60,16 +88,6 @@ public static class YellowbrickExtensions
     /// A builder for a database upgrader designed for Yellowbrick databases.
     /// </returns>
     public static UpgradeEngineBuilder YellowbrickDatabase(this SupportedDatabases supported, IConnectionManager connectionManager)
-        => YellowbrickDatabase(connectionManager);
-
-    /// <summary>
-    /// Creates an upgrader for Yellowbrick databases.
-    /// </summary>
-    /// <param name="connectionManager">The <see cref="YellowbrickConnectionManager"/> to be used during a database upgrade.</param>
-    /// <returns>
-    /// A builder for a database upgrader designed for Yellowbrick databases.
-    /// </returns>
-    public static UpgradeEngineBuilder YellowbrickDatabase(IConnectionManager connectionManager)
         => YellowbrickDatabase(connectionManager, null);
 
     /// <summary>
@@ -85,7 +103,7 @@ public static class YellowbrickExtensions
         var builder = new UpgradeEngineBuilder();
         builder.Configure(c => c.ConnectionManager = connectionManager);
         builder.Configure(c => c.ScriptExecutor = new YellowbrickScriptExecutor(() => c.ConnectionManager, () => c.Log, schema, () => c.VariablesEnabled, c.ScriptPreprocessors, () => c.Journal));
-        builder.Configure(c => c.Journal = new YellowbrickTableJournal(() => c.ConnectionManager, () => c.Log, schema, "schemaversions"));
+        builder.Configure(c => c.Journal = new YellowbrickTableJournal(() => c.ConnectionManager, () => c.Username, () => c.Log, schema, "schemaversions"));
         builder.WithPreprocessor(new YellowbrickPreprocessor());
         return builder;
     }
@@ -98,7 +116,44 @@ public static class YellowbrickExtensions
     /// <returns></returns>
     public static void YellowbrickDatabase(this SupportedDatabasesForEnsureDatabase supported, string connectionString)
     {
-        YellowbrickDatabase(supported, connectionString, new ConsoleUpgradeLog());
+        YellowbrickDatabase(supported, connectionString, (string)null);
+    }
+
+    /// <summary>
+    /// Ensures that the database specified in the connection string exists.
+    /// </summary>
+    /// <param name="supported">Fluent helper type.</param>
+    /// <param name="connectionString">The connection string.</param>
+    /// <param name="role">Role to execute as.</param>
+    /// <returns></returns>
+    public static void YellowbrickDatabase(this SupportedDatabasesForEnsureDatabase supported, string connectionString, string role)
+    {
+        YellowbrickDatabase(supported, connectionString, Encoding.UTF8, role);
+    }
+
+    /// <summary>
+    /// Ensures that the database specified in the connection string exists.
+    /// </summary>
+    /// <param name="supported">Fluent helper type.</param>
+    /// <param name="connectionString">The connection string.</param>
+    /// <param name="encoding">Database encoding.</param>
+    /// <returns></returns>
+    public static void YellowbrickDatabase(this SupportedDatabasesForEnsureDatabase supported, string connectionString, Encoding encoding)
+    {
+        YellowbrickDatabase(supported, connectionString, encoding, (string)null);
+    }
+
+    /// <summary>
+    /// Ensures that the database specified in the connection string exists.
+    /// </summary>
+    /// <param name="supported">Fluent helper type.</param>
+    /// <param name="connectionString">The connection string.</param>
+    /// <param name="encoding">Database encoding.</param>
+    /// <param name="role">Role to execute as.</param>
+    /// <returns></returns>
+    public static void YellowbrickDatabase(this SupportedDatabasesForEnsureDatabase supported, string connectionString, Encoding encoding, string role)
+    {
+        YellowbrickDatabase(supported, connectionString, encoding, role, new ConsoleUpgradeLog());
     }
 
     /// <summary>
@@ -110,7 +165,47 @@ public static class YellowbrickExtensions
     /// <returns></returns>
     public static void YellowbrickDatabase(this SupportedDatabasesForEnsureDatabase supported, string connectionString, X509Certificate2 certificate)
     {
-        YellowbrickDatabase(supported, connectionString, new ConsoleUpgradeLog(), certificate);
+        YellowbrickDatabase(supported, connectionString, (string)null, certificate);
+    }
+
+    /// <summary>
+    /// Ensures that the database specified in the connection string exists using SSL for the connection.
+    /// </summary>
+    /// <param name="supported">Fluent helper type.</param>
+    /// <param name="connectionString">The connection string.</param>
+    /// <param name="role">Role to execute as.</param>
+    /// <param name="certificate">Certificate for securing connection.</param>
+    /// <returns></returns>
+    public static void YellowbrickDatabase(this SupportedDatabasesForEnsureDatabase supported, string connectionString, string role, X509Certificate2 certificate)
+    {
+        YellowbrickDatabase(supported, connectionString, Encoding.UTF8, role, certificate);
+    }
+
+    /// <summary>
+    /// Ensures that the database specified in the connection string exists using SSL for the connection.
+    /// </summary>
+    /// <param name="supported">Fluent helper type.</param>
+    /// <param name="connectionString">The connection string.</param>
+    /// <param name="encoding">Database encoding.</param>
+    /// <param name="certificate">Certificate for securing connection.</param>
+    /// <returns></returns>
+    public static void YellowbrickDatabase(this SupportedDatabasesForEnsureDatabase supported, string connectionString, Encoding encoding, X509Certificate2 certificate)
+    {
+        YellowbrickDatabase(supported, connectionString, encoding, (string)null, certificate);
+    }
+
+    /// <summary>
+    /// Ensures that the database specified in the connection string exists using SSL for the connection.
+    /// </summary>
+    /// <param name="supported">Fluent helper type.</param>
+    /// <param name="connectionString">The connection string.</param>
+    /// <param name="encoding">Database encoding.</param>
+    /// <param name="role">Role to execute as.</param>
+    /// <param name="certificate">Certificate for securing connection.</param>
+    /// <returns></returns>
+    public static void YellowbrickDatabase(this SupportedDatabasesForEnsureDatabase supported, string connectionString, Encoding encoding, string role, X509Certificate2 certificate)
+    {
+        YellowbrickDatabase(supported, connectionString, encoding, role, new ConsoleUpgradeLog(), certificate);
     }
 
     /// <summary>
@@ -122,11 +217,116 @@ public static class YellowbrickExtensions
     /// <returns></returns>
     public static void YellowbrickDatabase(this SupportedDatabasesForEnsureDatabase supported, string connectionString, IUpgradeLog logger)
     {
-        YellowbrickDatabase(supported, connectionString, logger, null);
+        YellowbrickDatabase(supported, connectionString, (string)null, logger);
     }
 
-    private static void YellowbrickDatabase(this SupportedDatabasesForEnsureDatabase supported, string connectionString, IUpgradeLog logger, X509Certificate2 certificate)
+    /// <summary>
+    /// Ensures that the database specified in the connection string exists.
+    /// </summary>
+    /// <param name="supported">Fluent helper type.</param>
+    /// <param name="connectionString">The connection string.</param>
+    /// <param name="role">Role to execute as.</param>
+    /// <param name="logger">The <see cref="DbUp.Engine.Output.IUpgradeLog"/> used to record actions.</param>
+    /// <returns></returns>
+    public static void YellowbrickDatabase(this SupportedDatabasesForEnsureDatabase supported, string connectionString, string role, IUpgradeLog logger)
     {
+        YellowbrickDatabase(supported, connectionString, Encoding.UTF8, role, logger);
+    }
+
+    /// <summary>
+    /// Ensures that the database specified in the connection string exists.
+    /// </summary>
+    /// <param name="supported">Fluent helper type.</param>
+    /// <param name="connectionString">The connection string.</param>
+    /// <param name="encoding">Database encoding.</param>
+    /// <param name="logger">The <see cref="DbUp.Engine.Output.IUpgradeLog"/> used to record actions.</param>
+    /// <returns></returns>
+    public static void YellowbrickDatabase(this SupportedDatabasesForEnsureDatabase supported, string connectionString, Encoding encoding, IUpgradeLog logger)
+    {
+        YellowbrickDatabase(supported, connectionString, encoding, null, logger);
+    }
+
+    /// <summary>
+    /// Ensures that the database specified in the connection string exists.
+    /// </summary>
+    /// <param name="supported">Fluent helper type.</param>
+    /// <param name="connectionString">The connection string.</param>
+    /// <param name="encoding">Database encoding.</param>
+    /// <param name="role">Role to execute as.</param>
+    /// <param name="logger">The <see cref="DbUp.Engine.Output.IUpgradeLog"/> used to record actions.</param>
+    /// <returns></returns>
+    public static void YellowbrickDatabase(this SupportedDatabasesForEnsureDatabase supported, string connectionString, Encoding encoding, string role, IUpgradeLog logger)
+    {
+        YellowbrickDatabase(supported, connectionString, encoding, role, logger, null);
+    }
+
+    /// <summary>
+    /// Ensures that the database specified in the connection string exists.
+    /// </summary>
+    /// <param name="supported">Fluent helper type.</param>
+    /// <param name="connectionString">The connection string.</param>
+    /// <param name="logger">The <see cref="DbUp.Engine.Output.IUpgradeLog"/> used to record actions.</param>
+    /// <param name="certificate">Certificate for securing connection.</param>
+    /// <returns></returns>
+    public static void YellowbrickDatabase(this SupportedDatabasesForEnsureDatabase supported, string connectionString, IUpgradeLog logger, X509Certificate2 certificate)
+    {
+        YellowbrickDatabase(supported, connectionString, (string)null, logger, certificate);
+    }
+
+    /// <summary>
+    /// Ensures that the database specified in the connection string exists.
+    /// </summary>
+    /// <param name="supported">Fluent helper type.</param>
+    /// <param name="connectionString">The connection string.</param>
+    /// <param name="role">Role to execute as.</param>
+    /// <param name="logger">The <see cref="DbUp.Engine.Output.IUpgradeLog"/> used to record actions.</param>
+    /// <param name="certificate">Certificate for securing connection.</param>
+    /// <returns></returns>
+    public static void YellowbrickDatabase(this SupportedDatabasesForEnsureDatabase supported, string connectionString, string role, IUpgradeLog logger, X509Certificate2 certificate)
+    {
+        YellowbrickDatabase(supported, connectionString, Encoding.UTF8, role, logger, certificate);
+    }
+
+    /// <summary>
+    /// Ensures that the database specified in the connection string exists.
+    /// </summary>
+    /// <param name="supported">Fluent helper type.</param>
+    /// <param name="connectionString">The connection string.</param>
+    /// <param name="encoding">Database encoding.</param>
+    /// <param name="logger">The <see cref="DbUp.Engine.Output.IUpgradeLog"/> used to record actions.</param>
+    /// <param name="certificate">Certificate for securing connection.</param>
+    /// <returns></returns>
+    public static void YellowbrickDatabase(this SupportedDatabasesForEnsureDatabase supported, string connectionString, Encoding encoding, IUpgradeLog logger, X509Certificate2 certificate)
+    {
+        YellowbrickDatabase(supported, connectionString, encoding, null, logger, certificate);
+    }
+
+    /// <summary>
+    /// Ensures that the database specified in the connection string exists.
+    /// </summary>
+    /// <param name="supported">Fluent helper type.</param>
+    /// <param name="connectionString">The connection string.</param>
+    /// <param name="encoding">Database encoding.</param>
+    /// <param name="role">Role to execute as.</param>
+    /// <param name="logger">The <see cref="DbUp.Engine.Output.IUpgradeLog"/> used to record actions.</param>
+    /// <param name="certificate">Certificate for securing connection.</param>
+    /// <returns></returns>
+    public static void YellowbrickDatabase(this SupportedDatabasesForEnsureDatabase supported, string connectionString, Encoding encoding, string role, IUpgradeLog logger, X509Certificate2 certificate)
+    {
+        string encodingString;
+        if (encoding.Equals(Encoding.UTF8))
+        {
+            encodingString = "UTF8";
+        }
+        else if (encoding.Equals(Encoding.ASCII))
+        {
+            encodingString = "LATIN9";
+        }
+        else
+        {
+            throw new Exception("Unsupported encoding: " + encoding.EncodingName);
+        }
+
         if (supported == null) throw new ArgumentNullException("supported");
 
         if (string.IsNullOrEmpty(connectionString) || connectionString.Trim() == string.Empty)
@@ -186,10 +386,18 @@ public static class YellowbrickExtensions
                 }
             }
 
+            string roleText = string.Empty;
+            if (role != null)
+            {
+                roleText = "SET ROLE \"" + role + "\";";
+            }
+
             sqlCommandText = string.Format
                 (
-                    "create database \"{0}\";",
-                    databaseName
+                    "{0}create database \"{1}\" with encoding={2};",
+                    roleText,
+                    databaseName,
+                    encodingString
                 );
 
             // Create the database...
@@ -215,7 +423,7 @@ public static class YellowbrickExtensions
     /// <returns></returns>
     public static UpgradeEngineBuilder JournalToYellowbrickSimpleTable(this UpgradeEngineBuilder builder, string schema, string table)
     {
-        builder.Configure(c => c.Journal = new YellowbrickSimpleTableJournal(() => c.ConnectionManager, () => c.Log, schema, table));
+        builder.Configure(c => c.Journal = new YellowbrickSimpleTableJournal(() => c.ConnectionManager, () => c.Username, () => c.Log, schema, table));
         return builder;
     }
 
@@ -228,7 +436,7 @@ public static class YellowbrickExtensions
     /// <returns></returns>
     public static UpgradeEngineBuilder JournalToYellowbrickTable(this UpgradeEngineBuilder builder, string schema, string table)
     {
-        builder.Configure(c => c.Journal = new YellowbrickTableJournal(() => c.ConnectionManager, () => c.Log, schema, table));
+        builder.Configure(c => c.Journal = new YellowbrickTableJournal(() => c.ConnectionManager, () => c.Username, () => c.Log, schema, table));
         return builder;
     }
 }

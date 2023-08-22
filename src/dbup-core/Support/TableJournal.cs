@@ -14,6 +14,7 @@ namespace DbUp.Support
     /// </summary>
     public abstract class TableJournal : IJournal
     {
+        readonly Func<string> username;
         readonly ISqlObjectParser sqlObjectParser;
         bool journalExists;
 
@@ -30,7 +31,27 @@ namespace DbUp.Support
             Func<IUpgradeLog> logger,
             ISqlObjectParser sqlObjectParser,
             string schema, string table)
+            : this(connectionManager, () => null, logger, sqlObjectParser, schema, table)
         {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TableJournal"/> class.
+        /// </summary>
+        /// <param name="connectionManager">The connection manager.</param>
+        /// <param name="username">The username.</param>
+        /// <param name="logger">The log.</param>
+        /// <param name="sqlObjectParser"></param>
+        /// <param name="schema">The schema that contains the table.</param>
+        /// <param name="table">The table name.</param>
+        protected TableJournal(
+            Func<IConnectionManager> connectionManager,
+            Func<string> username,
+            Func<IUpgradeLog> logger,
+            ISqlObjectParser sqlObjectParser,
+            string schema, string table)
+        {
+            this.username = username;
             this.sqlObjectParser = sqlObjectParser;
             ConnectionManager = connectionManager;
             Log = logger;
@@ -112,16 +133,21 @@ namespace DbUp.Support
             var command = dbCommandFactory();
 
             var scriptNameParam = command.CreateParameter();
-            scriptNameParam.ParameterName = "scriptName";
+            scriptNameParam.ParameterName = "script_name";
             scriptNameParam.Value = script.Name;
             command.Parameters.Add(scriptNameParam);
 
             var appliedParam = command.CreateParameter();
-            appliedParam.ParameterName = "applied";
+            appliedParam.ParameterName = "applied_date";
             appliedParam.Value = DateTime.Now;
             command.Parameters.Add(appliedParam);
 
-            command.CommandText = GetInsertJournalEntrySql("@scriptName", "@applied");
+            var appliedByParam = command.CreateParameter();
+            appliedByParam.ParameterName = "applied_by";
+            appliedByParam.Value = username();
+            command.Parameters.Add(appliedByParam);
+
+            command.CommandText = GetInsertJournalEntrySql("@script_name", "@applied_date", "@applied_by");
             command.CommandType = CommandType.Text;
             return command;
         }
@@ -148,8 +174,9 @@ namespace DbUp.Support
         /// </summary>
         /// <param name="scriptName">Name of the script name param (i.e @scriptName)</param>
         /// <param name="applied">Name of the applied param (i.e @applied)</param>
+        /// /// <param name="appliedBy">Name of the appliedBy param (i.e @appliedBy)</param>
         /// <returns></returns>
-        protected abstract string GetInsertJournalEntrySql(string @scriptName, string @applied);
+        protected abstract string GetInsertJournalEntrySql(string @scriptName, string @applied, string @appliedBy);
 
         /// <summary>
         /// Sql for getting the journal entries

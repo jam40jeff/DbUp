@@ -17,7 +17,7 @@ namespace DbUp.ScriptProviders
         readonly Func<string, bool> filter;
         readonly Encoding encoding;
         readonly FileSystemScriptOptions options;
-        readonly SqlScriptOptions sqlScriptOptions;
+        readonly Func<string, SqlScriptOptions> sqlScriptOptions;
 
         ///<summary>
         ///</summary>
@@ -39,7 +39,16 @@ namespace DbUp.ScriptProviders
         /// <param name="directoryPath">Path to SQL upgrade scripts</param>
         /// <param name="options">Different options for the file system script provider</param>
         /// <param name="sqlScriptOptions">The sql script options</param>        
-        public FileSystemScriptProvider(string directoryPath, FileSystemScriptOptions options, SqlScriptOptions sqlScriptOptions)
+        public FileSystemScriptProvider(string directoryPath, FileSystemScriptOptions options, SqlScriptOptions sqlScriptOptions) : this(directoryPath, options, _ => sqlScriptOptions)
+        {
+        }
+
+        /// <summary>
+        /// </summary>
+        /// <param name="directoryPath">Path to SQL upgrade scripts</param>
+        /// <param name="options">Different options for the file system script provider</param>
+        /// <param name="sqlScriptOptions">The sql script options</param>        
+        public FileSystemScriptProvider(string directoryPath, FileSystemScriptOptions options, Func<string, SqlScriptOptions> sqlScriptOptions)
         {
             if (options == null)
                 throw new ArgumentNullException("options");
@@ -66,7 +75,7 @@ namespace DbUp.ScriptProviders
                 {
                     files = files.Where(filter).ToList();
                 }
-                return files.Select(x => SqlScript.FromFile(directoryPath, x, encoding, sqlScriptOptions))
+                return files.Select(x => SqlScript.FromFile(directoryPath, x, encoding, sqlScriptOptions(x)))
                     .OrderBy(x => x.Name)
                     .ToList();
             }
@@ -92,7 +101,7 @@ namespace DbUp.ScriptProviders
                 {
                     files = files.Where(x => filter(x.Name)).ToList();
                 }
-                return files.Select(x => SqlScript.FromStream(x.Name, new FileStream(x.FullName, FileMode.Open, FileAccess.Read), encoding, sqlScriptOptions))
+                return files.Select(x => SqlScript.FromStream(x.Name, () => new FileStream(x.FullName, FileMode.Open, FileAccess.Read), encoding, sqlScriptOptions(x.FullName)))
                     .OrderBy(x => x.Name)
                     .ToList();
             }

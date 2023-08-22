@@ -30,22 +30,22 @@ namespace DbUp.Postgresql
 
         protected override string GetVerifySchemaSql(string schema) => $"CREATE SCHEMA IF NOT EXISTS {schema}";
 
-        protected override void ExecuteCommandsWithinExceptionHandler(int index, PreparedSqlScript script, Action executeCommand)
+        protected override void HandleException(int index, PreparedSqlScript script, Exception e)
         {
-            try
-            {
-                executeCommand();
-            }
 #if NPGSQLv2
-            catch (NpgsqlException exception)
+            NpgsqlException exception = e as NpgsqlException;
 #else
-            catch (PostgresException exception)
+            PostgresException exception = e as PostgresException;
 #endif
+            if (exception != null)
             {
                 Log().WriteInformation("Npgsql exception has occured in script: '{0}'", script.Name);
                 Log().WriteError("Script block number: {0}; Block line {1}; Position: {2}; Message: {3}", index, exception.Line, exception.Position, exception.Message);
                 Log().WriteError(exception.ToString());
-                throw;
+            }
+            else
+            {
+                base.HandleException(index, script, e);
             }
         }
     }

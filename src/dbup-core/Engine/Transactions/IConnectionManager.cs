@@ -17,6 +17,20 @@ namespace DbUp.Engine.Transactions
         IDisposable OperationStarting(IUpgradeLog upgradeLog, List<PreparedSqlScript> executedScripts);
 
         /// <summary>
+        /// Executes an action using the specified transaction mode 
+        /// </summary>
+        /// <param name="action">The action to execute</param>
+        void ExecuteWithManagedConnection(Action<Func<IDbConnection>, Func<IDbTransaction>> action);
+
+        /// <summary>
+        /// Executes an action which has a result using the specified transaction mode 
+        /// </summary>
+        /// <param name="actionWithResult">The action to execute</param>
+        /// <typeparam name="T">The result type</typeparam>
+        /// <returns>The result of the action</returns>
+        T ExecuteWithManagedConnection<T>(Func<Func<IDbConnection>, Func<IDbTransaction>, T> actionWithResult);
+        
+        /// <summary>
         /// Execute a lambda with the connection managed by the connection manager (i.e transactions, reusing connections etc)
         /// </summary>
         /// <param name="action">Action to execute</param>

@@ -31,13 +31,10 @@ namespace DbUp.Oracle
             throw new NotSupportedException();
         }
 
-        protected override void ExecuteCommandsWithinExceptionHandler(int index, PreparedSqlScript script, Action executeCommand)
+        protected override void HandleException(int index, PreparedSqlScript script, Exception e)
         {
-            try
-            {
-                executeCommand();
-            }
-            catch (OracleException exception)
+            OracleException exception = e as OracleException;
+            if (exception != null)
             {
 #if MY_SQL_DATA_6_9_5
                 var code = exception.ErrorCode;
@@ -47,7 +44,10 @@ namespace DbUp.Oracle
                 Log().WriteInformation("Oracle exception has occured in script: '{0}'", script.Name);
                 Log().WriteError("Oracle error code: {0}; Number {1}; Message: {2}", index, code, exception.Number, exception.Message);
                 Log().WriteError(exception.ToString());
-                throw;
+            }
+            else
+            {
+                base.HandleException(index, script, e);
             }
         }
     }

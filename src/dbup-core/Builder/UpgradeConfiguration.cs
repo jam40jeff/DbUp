@@ -36,6 +36,11 @@ namespace DbUp.Builder
         public IConnectionManager ConnectionManager { get; set; }
 
         /// <summary>
+        /// User running the upgrade
+        /// </summary>
+        public string Username { get; set; }
+
+        /// <summary>
         /// Gets or sets a log which captures details about the upgrade.
         /// </summary>
         public IUpgradeLog Log
