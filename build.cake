@@ -7,7 +7,7 @@ Task("Clean")
     .Does(() => {
         if (DirectoryExists(outputDir))
         {
-            DeleteDirectory(outputDir, recursive:true);
+            DeleteDirectory(outputDir, new DeleteDirectorySettings());
         }
     });
 
@@ -21,13 +21,13 @@ Task("Version")
             OutputType = GitVersionOutput.BuildServer
         });
         versionInfo = GitVersion(new GitVersionSettings{ OutputType = GitVersionOutput.Json });
-		versionInfo.NuGetVersion = "4.5.1-custom32";
+		versionInfo.NuGetVersion = "4.5.1-custom33";
     });
 
 Task("Restore")
     .IsDependentOn("Version")
     .Does(() => {
-        DotNetCoreRestore("src", new DotNetCoreRestoreSettings() {
+        DotNetRestore("src", new DotNetRestoreSettings() {
             ArgumentCustomization = args => args.Append("/p:Version=" + versionInfo.NuGetVersion)
         });
     });
@@ -39,7 +39,7 @@ Task("Build")
     .Does(() => {
         var settings =  new MSBuildSettings()
             .SetConfiguration("Release")
-            .UseToolVersion(MSBuildToolVersion.VS2017)
+            .UseToolVersion(MSBuildToolVersion.VS2022)
             .WithProperty("Version", versionInfo.NuGetVersion)
             .WithProperty("PackageOutputPath", System.IO.Path.GetFullPath(outputDir))
             .WithTarget("Build")
@@ -48,18 +48,7 @@ Task("Build")
         MSBuild("./src/DbUp.sln", settings);
     });
 
-Task("Test")
-    .IsDependentOn("Build")
-    .Does(() => {
-         DotNetCoreTest("./src/dbup-tests/dbup-tests.csproj", new DotNetCoreTestSettings
-        {
-            Configuration = "Release",
-            NoBuild = true
-        });
-    });
-
 Task("Package")
-    //.IsDependentOn("Test")
 	.IsDependentOn("Build")
     .Does(() => {
 
@@ -71,15 +60,6 @@ Task("Package")
         System.IO.File.WriteAllLines(outputDir + "artifacts", new[]
         {
             "core:dbup-core." + versionInfo.NuGetVersion + ".nupkg",
-            "firebird:dbup-firebird." + versionInfo.NuGetVersion + ".nupkg",
-            "mysql:dbup-mysql." + versionInfo.NuGetVersion + ".nupkg",
-            "postgresql:dbup-postgresql." + versionInfo.NuGetVersion + ".nupkg",
-            "redshift:dbup-redshift." + versionInfo.NuGetVersion + ".nupkg",
-            "sqlce:dbup-sqlce." + versionInfo.NuGetVersion + ".nupkg",
-            "sqlite:dbup-sqlite." + versionInfo.NuGetVersion + ".nupkg",
-            "sqlite-mono:dbup-sqlite-mono." + versionInfo.NuGetVersion + ".nupkg",
-            "sqlserver:dbup-sqlserver." + versionInfo.NuGetVersion + ".nupkg",
-            "sqlanywhere:dbup-sqlanywhere." + versionInfo.NuGetVersion + ".nupkg",
             "yellowbrick:dbup-yellowbrick." + versionInfo.NuGetVersion + ".nupkg"
         });
 
